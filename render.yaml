@@ -11,8 +11,8 @@ services:
   - type: worker
     name: eidos-bot
     env: python
-    buildCommand: python -m venv venv && venv/bin/pip install -r bot/requirements.txt
-    startCommand: venv/bin/python bot/main.py
+    buildCommand: pip install -r bot/requirements.txt
+    startCommand: python bot/main.py
     envVars:
       - key: BOT_TOKEN
         sync: false
