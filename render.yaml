@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: eidos-webapp
+    env: static
+    buildCommand: cd webapp && npm install && npm run build
+    staticPublishPath: webapp/dist
+    envVars:
+      - key: VITE_API_URL
+        value: "https://your-api-url"
+
+  - type: worker
+    name: eidos-bot
+    env: python
+    buildCommand: python -m venv venv && venv/bin/pip install -r bot/requirements.txt
+    startCommand: venv/bin/python bot/main.py
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: ADMIN_ID
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: WEBAPP_URL
+        value: "https://eidos-webapp.onrender.com"
