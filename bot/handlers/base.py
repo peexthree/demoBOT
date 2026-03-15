@@ -1,24 +1,21 @@
 import os
 from aiogram import Router, types
 from aiogram.filters import CommandStart
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+from handlers.demo import get_demo_keyboard
 
 router = Router()
 
 @router.message(CommandStart())
 async def start_cmd(message: types.Message):
-    # Получаем URL статического сайта из Render Environment
-    web_app_url = os.getenv("WEBAPP_URL", "https://render.com")
-
-    # Имитация AI видео аватара (мы отправляем эффектный текст или гифку, но так как гифки нет - эмодзи)
+    # Убрали внешние ссылки на WebApp, делаем все нативно в Telegram.
     welcome_text = (
-        "🤖 *Eidos System* — премиальная система автоматизации.\n\n"
-        "Выберите режим, чтобы протестировать систему в действии:"
+        "🤖 *Eidos System* — премиальная система автоматизации бизнеса внутри Telegram.\n\n"
+        "Мы перенесли весь функционал прямо в чат, без сторонних сайтов!\n\n"
+        "Выберите роль, чтобы протестировать систему в действии:"
     )
 
-    markup = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="👤 Я — Клиент", web_app=WebAppInfo(url=f"{web_app_url}?start_param=client"))],
-        [InlineKeyboardButton(text="👑 Я — Владелец бизнеса", web_app=WebAppInfo(url=f"{web_app_url}?start_param=admin"))]
-    ])
+    markup = get_demo_keyboard("guest")
 
     await message.answer(welcome_text, reply_markup=markup, parse_mode="Markdown")
