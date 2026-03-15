@@ -12,6 +12,7 @@ services:
   env: python
   buildCommand: pip install -r bot/requirements.txt
   startCommand: python bot/main.py
+  healthCheckPath: /healthz
   envVars:
   - key: BOT_TOKEN
     sync: false

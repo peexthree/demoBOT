@@ -51,6 +51,7 @@ async def main():
          # Запускаем минимальный сервер для health checks (Render требует порт)
          app = web.Application()
          app.router.add_get("/healthz", health_check)
+         app.router.add_get("/", health_check)
          port = int(os.getenv("PORT", 10000))
          runner = web.AppRunner(app)
          await runner.setup()
@@ -83,6 +84,7 @@ async def main():
 
         # Добавляем health check (Render часто требует этого)
         app.router.add_get("/healthz", health_check)
+        app.router.add_get("/", health_check)
 
         # Настраиваем приложение (добавляет стартап/шаттдаун коллбэки)
         setup_application(app, dp, bot=bot)
@@ -109,6 +111,7 @@ async def main():
         # Запускаем минимальный сервер для health checks (Render требует порт)
         app = web.Application()
         app.router.add_get("/healthz", health_check)
+        app.router.add_get("/", health_check)
         port = int(os.getenv("PORT", 10000))
         runner = web.AppRunner(app)
         await runner.setup()
