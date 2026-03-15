@@ -106,7 +106,14 @@ async def handle_ai_question(message: types.Message, state: FSMContext):
             "Интеграция ИИ позволяет закрывать возражения клиентов круглосуточно."
         )
 
+
     final_text = f"🧠 *Ответ Архитектора:*\n\n{answer_text}"
+
+    # Telegram messages are limited to 4096 characters.
+    # We truncate it to 4000 to be safe, adding a marker if truncated.
+    if len(final_text) > 4000:
+        final_text = final_text[:4000] + "...\n\n*[Ответ обрезан]*"
+
 
     await status_msg.edit_text(
         final_text,

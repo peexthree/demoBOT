@@ -25,6 +25,6 @@ services:
   - key: WEBAPP_URL
     value: https://eidos-webapp.onrender.com
   - key: WEBHOOK_URL
-    sync: false
+    value: https://demobot-zs04.onrender.com
   - key: PORT
     sync: false
