@@ -13,7 +13,7 @@ from aiohttp import web
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from dotenv import load_dotenv
 
-from middlewares import ShadowTrackingMiddleware
+from middlewares import SmartStalkerMiddleware
 from handlers import base, client, admin, demo
 
 load_dotenv()
@@ -36,7 +36,7 @@ def main():
     dp = Dispatcher()
 
     # Регистрация Middlewares
-    dp.update.middleware(ShadowTrackingMiddleware())
+    dp.update.middleware(SmartStalkerMiddleware())
 
     # Регистрация роутеров
     dp.include_router(base.router)

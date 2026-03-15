@@ -16,7 +16,6 @@ if url and key:
 else:
     logging.warning("SUPABASE_URL или SUPABASE_KEY не установлены. База данных отключена (моковый режим).")
 
-
 def save_lead_request(data: dict):
     if not supabase:
         logging.warning(f"Моковое сохранение лида: {data}")
@@ -27,3 +26,14 @@ def save_lead_request(data: dict):
         logging.info(f"Лид успешно сохранен: {response.data}")
     except Exception as e:
         logging.error(f"Ошибка при сохранении лида: {e}")
+
+def save_event(data: dict):
+    if not supabase:
+        logging.warning(f"Моковое сохранение события: {data}")
+        return
+
+    try:
+        response = supabase.table("events").insert(data).execute()
+        logging.info(f"Событие успешно сохранено: {response.data}")
+    except Exception as e:
+        logging.error(f"Ошибка при сохранении события: {e}")
