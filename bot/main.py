@@ -26,10 +26,12 @@ async def health_check(request):
 
 async def main():
     bot_token = os.getenv("BOT_TOKEN")
+    is_mock = False
     if not bot_token:
         # Для локальных тестов
         logging.warning("BOT_TOKEN не найден, используем моковый токен.")
-        bot_token = "mock"
+        bot_token = "123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi" # valid format
+        is_mock = True
 
     bot = Bot(token=bot_token, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
     dp = Dispatcher()
@@ -44,8 +46,19 @@ async def main():
 
     logging.info("Starting bot...")
 
-    if bot_token == "mock":
-         logging.info("Mock mode, stopping...")
+    if is_mock:
+         logging.info("Mock mode, skipping polling but starting health check...")
+         # Запускаем минимальный сервер для health checks (Render требует порт)
+         app = web.Application()
+         app.router.add_get("/healthz", health_check)
+         port = int(os.getenv("PORT", 10000))
+         runner = web.AppRunner(app)
+         await runner.setup()
+         site = web.TCPSite(runner, host="0.0.0.0", port=port)
+         await site.start()
+
+         logging.info(f"Health check server running on 0.0.0.0:{port} in mock mode")
+         await asyncio.Event().wait()
          return
 
     webhook_url = os.getenv("WEBHOOK_URL")
@@ -75,7 +88,7 @@ async def main():
         setup_application(app, dp, bot=bot)
 
         # Запускаем aiohttp сервер
-        port = int(os.getenv("PORT", 8080))
+        port = int(os.getenv("PORT", 10000))
         runner = web.AppRunner(app)
         await runner.setup()
         site = web.TCPSite(runner, host="0.0.0.0", port=port)
@@ -88,7 +101,22 @@ async def main():
     else:
         logging.info("WEBHOOK_URL not set, using long polling")
         # Удаляем вебхук на всякий случай
-        await bot.delete_webhook(drop_pending_updates=True)
+        try:
+            await bot.delete_webhook(drop_pending_updates=True)
+        except Exception as e:
+            logging.error(f"Could not delete webhook: {e}")
+
+        # Запускаем минимальный сервер для health checks (Render требует порт)
+        app = web.Application()
+        app.router.add_get("/healthz", health_check)
+        port = int(os.getenv("PORT", 10000))
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, host="0.0.0.0", port=port)
+        await site.start()
+
+        logging.info(f"Health check server running on 0.0.0.0:{port}")
+
         try:
             await dp.start_polling(bot)
         except Exception as e:
