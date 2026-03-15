@@ -14,7 +14,7 @@ from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_applicati
 from dotenv import load_dotenv
 
 from middlewares import ShadowTrackingMiddleware
-from handlers import base, client, admin
+from handlers import base, client, admin, demo
 
 load_dotenv()
 
@@ -42,11 +42,13 @@ def main():
     dp.include_router(base.router)
     dp.include_router(client.router)
     dp.include_router(admin.router)
+    dp.include_router(demo.router)
 
     logging.info("Starting bot...")
 
     app = web.Application()
     app.router.add_get("/healthz", health_check)
+    app.router.add_get("/health", health_check) # Добавлено для монитора
     app.router.add_get("/", health_check)
     port = int(os.getenv("PORT", 10000))
 
