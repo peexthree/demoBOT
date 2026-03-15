@@ -23,7 +23,7 @@ services:
   - key: SUPABASE_KEY
     sync: false
   - key: WEBAPP_URL
-    value: https://eidos-webapp.onrender.com
+    value: https://lid-flow.vercel.app/twa
   - key: WEBHOOK_URL
     value: https://demobot-zs04.onrender.com
   - key: PORT
