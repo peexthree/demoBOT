@@ -93,7 +93,7 @@ async def handle_ai_question(message: types.Message, state: FSMContext):
 
     if model:
         try:
-             prompt = f"Ответь на вопрос пользователя профессионально и экспертно в роли бизнес-архитектора систем автоматизации: {message.text}"
+             prompt = f"Ответь на вопрос пользователя профессионально и экспертно в роли бизнес-архитектора систем автоматизации: {message.text}. ПОЖАЛУЙСТА, ОТВЕЧАЙ ПРОСТЫМ ТЕКСТОМ БЕЗ ИСПОЛЬЗОВАНИЯ MARKDOWN ФОРМАТИРОВАНИЯ (без звездочек, подчеркиваний и т.д.)."
              response = await model.generate_content_async(prompt)
              answer_text = response.text
         except Exception as e:
@@ -115,13 +115,14 @@ async def handle_ai_question(message: types.Message, state: FSMContext):
         final_text = final_text[:4000] + "...\n\n*[Ответ обрезан]*"
 
 
+
     await status_msg.edit_text(
         final_text,
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚙️ Вернуться в Демо", callback_data="demo_client_path")],
             [InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]
         ]),
-        parse_mode="Markdown"
+        parse_mode=None
     )
 
 @router.callback_query(F.data.startswith("demo_niche_"))
