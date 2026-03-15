@@ -86,7 +86,7 @@ def main():
     else:
         logging.info("WEBHOOK_URL not set, using long polling")
 
-        async def on_startup_polling(app):
+        async def delayed_polling(app):
             # Задержка для предотвращения TelegramConflictError при zero-downtime деплоях
             # Старая инстанция бота завершает работу не сразу.
             logging.info("Delaying polling start for 15 seconds to avoid conflicts with stopping instances...")
@@ -102,10 +102,15 @@ def main():
             logging.info("Starting polling task...")
             app['polling_task'] = asyncio.create_task(dp.start_polling(bot))
 
+        async def on_startup_polling(app):
+            app['delayed_task'] = asyncio.create_task(delayed_polling(app))
+
         app.on_startup.append(on_startup_polling)
 
         async def on_shutdown_polling(app):
             logging.info("Stopping polling task...")
+            if 'delayed_task' in app:
+                app['delayed_task'].cancel()
             if 'polling_task' in app:
                 app['polling_task'].cancel()
             await bot.session.close()
