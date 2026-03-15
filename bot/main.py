@@ -95,9 +95,18 @@ def main():
 
             # Запускаем поллинг как фоновую задачу
             logging.info("Starting polling task...")
-            asyncio.create_task(dp.start_polling(bot))
+            app['polling_task'] = asyncio.create_task(dp.start_polling(bot))
 
         app.on_startup.append(on_startup_polling)
+
+        async def on_shutdown_polling(app):
+            logging.info("Stopping polling task...")
+            if 'polling_task' in app:
+                app['polling_task'].cancel()
+            await bot.session.close()
+
+        app.on_shutdown.append(on_shutdown_polling)
+
 
         logging.info(f"Health check server running on 0.0.0.0:{port}")
         web.run_app(app, host="0.0.0.0", port=port)
