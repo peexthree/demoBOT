@@ -24,7 +24,7 @@
 
 1. `BOT_TOKEN`: Токен вашего бота (получите у [@BotFather](https://t.me/BotFather)).
 2. `ADMIN_ID`: Ваш Telegram ID (цифры), куда будут приходить скрытые алерты ("🔥 Лид @username сейчас тестирует админ-панель"). Получите, например, у @getmyid_bot.
-3. `WEBAPP_URL`: Ссылка на ваш задеплоенный статический сайт (например: `https://eidos-webapp.onrender.com`).
+3. `WEBAPP_URL`: Ссылка на ваш задеплоенный статический сайт (например: `https://lid-flow.vercel.app/twa`).
 4. `SUPABASE_URL`: Ссылка на ваш проект Supabase (см. раздел "База Данных").
 5. `SUPABASE_KEY`: Ваш анонимный `anon` ключ Supabase.
 

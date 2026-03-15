@@ -25,7 +25,7 @@ def get_main_menu_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🚀 [ПОСМОТРЕТЬ РЕШЕНИЯ]", callback_data="demo_portfolio")],
         [InlineKeyboardButton(text="⚙️ [ДЕМО-РЕЖИМ: АВТОМАТИЗАЦИЯ]", callback_data="demo_client_path")],
-        [InlineKeyboardButton(text="📊 [ЛИЧНЫЙ КАБИНЕТ И АДМИН-ПАНЕЛЬ]", web_app=types.WebAppInfo(url=os.getenv("WEBAPP_URL", "https://eidos-webapp.onrender.com")))],
+        [InlineKeyboardButton(text="📊 [ЛИЧНЫЙ КАБИНЕТ И АДМИН-ПАНЕЛЬ]", web_app=types.WebAppInfo(url=os.getenv("WEBAPP_URL", "https://lid-flow.vercel.app/twa")))],
         [InlineKeyboardButton(text="📑 [ИНВЕСТИЦИОННЫЙ ЧЕК-ЛИСТ]", callback_data="demo_pricing")],
         [InlineKeyboardButton(text="💬 [ОБСУДИТЬ ПРОЕКТ]", url=f"tg://user?id={os.getenv('ADMIN_ID', '0')}")]
     ])
