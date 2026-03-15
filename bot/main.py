@@ -87,6 +87,11 @@ def main():
         logging.info("WEBHOOK_URL not set, using long polling")
 
         async def on_startup_polling(app):
+            # Задержка для предотвращения TelegramConflictError при zero-downtime деплоях
+            # Старая инстанция бота завершает работу не сразу.
+            logging.info("Delaying polling start for 15 seconds to avoid conflicts with stopping instances...")
+            await asyncio.sleep(15)
+
             # Удаляем вебхук на всякий случай
             try:
                 await bot.delete_webhook(drop_pending_updates=True)
