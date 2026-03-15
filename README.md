@@ -80,3 +80,23 @@ pip install -r bot/requirements.txt
 # Создайте файл .env внутри папки bot с необходимыми секретами
 python bot/main.py
 ```
+
+---
+
+### Обновление (Цифровой Шоурум Архитектора)
+Для работы системы аналитики кликов и глубокого трекинга `events` (Smart Stalker), вам потребуется добавить еще одну таблицу в базу данных Supabase:
+
+```sql
+CREATE TABLE public.events (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    user_id BIGINT,
+    username TEXT,
+    action TEXT
+);
+
+ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Enable insert for all users" ON public.events FOR INSERT WITH CHECK (true);
+```
+
+Также необходимо добавить переменную окружения `API_KEY` в Render для бота, если вы хотите, чтобы работал "ИИ-Консультант (Демо)" на базе модели Google Gemini.

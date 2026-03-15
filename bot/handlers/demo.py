@@ -1,120 +1,151 @@
+import os
+import asyncio
 from aiogram import Router, F, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.context import FSMContext
+
+try:
+    import google.generativeai as genai
+    API_KEY = os.getenv("API_KEY")
+    if API_KEY:
+        genai.configure(api_key=API_KEY)
+        model = genai.GenerativeModel('gemini-2.5-flash')
+    else:
+        model = None
+except ImportError:
+    model = None
 
 router = Router()
 
-def get_demo_keyboard(role="guest"):
-    if role == "client":
-        return InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🛒 Каталог товаров", callback_data="demo_catalog")],
-            [InlineKeyboardButton(text="📅 Запись на услугу", callback_data="demo_booking")],
-            [InlineKeyboardButton(text="💎 Мои бонусы (Лояльность)", callback_data="demo_loyalty")],
-            [InlineKeyboardButton(text="🎫 Служба поддержки", callback_data="demo_support")],
-            [InlineKeyboardButton(text="🔄 Сменить роль на 'Бизнес'", callback_data="role_admin")]
-        ])
-    elif role == "admin":
-        return InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="📊 Аналитика продаж", callback_data="demo_analytics")],
-            [InlineKeyboardButton(text="👥 Управление лидами (CRM)", callback_data="demo_crm")],
-            [InlineKeyboardButton(text="📢 Сделать рассылку", callback_data="demo_broadcast")],
-            [InlineKeyboardButton(text="⚙️ Настройки бизнеса", callback_data="demo_settings")],
-            [InlineKeyboardButton(text="🔄 Сменить роль на 'Клиент'", callback_data="role_client")]
-        ])
+class AIState(StatesGroup):
+    waiting_for_question = State()
+
+def get_main_menu_keyboard():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🚀 [ПОСМОТРЕТЬ РЕШЕНИЯ]", callback_data="demo_portfolio")],
+        [InlineKeyboardButton(text="⚙️ [ДЕМО-РЕЖИМ: АВТОМАТИЗАЦИЯ]", callback_data="demo_client_path")],
+        [InlineKeyboardButton(text="📊 [ЛИЧНЫЙ КАБИНЕТ И АДМИН-ПАНЕЛЬ]", web_app=types.WebAppInfo(url=os.getenv("WEBAPP_URL", "https://eidos-webapp.onrender.com")))],
+        [InlineKeyboardButton(text="📑 [ИНВЕСТИЦИОННЫЙ ЧЕК-ЛИСТ]", callback_data="demo_pricing")],
+        [InlineKeyboardButton(text="💬 [ОБСУДИТЬ ПРОЕКТ]", url=f"tg://user?id={os.getenv('ADMIN_ID', '0')}")]
+    ])
+
+@router.callback_query(F.data == "main_menu")
+async def main_menu_handler(callback: types.CallbackQuery):
+    await callback.message.edit_text(
+        "🤖 *Eidos System* — цифровой шоурум Архитектора.\n\n"
+        "Вы находитесь в демо-версии премиальной системы автоматизации бизнеса.\n\n"
+        "Выберите раздел для изучения:",
+        reply_markup=get_main_menu_keyboard(),
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+@router.callback_query(F.data == "demo_portfolio")
+async def demo_portfolio(callback: types.CallbackQuery):
+    await callback.message.edit_text(
+        "🚀 *Наши Решения и Кейсы*\n\n"
+        "Мы внедряем автономные цифровые активы, которые окупаются за 2-3 месяца.\n\n"
+        "🔹 *Lizing-Phi* — Автоматизация скоринга и заявок.\n"
+        "   _Результат:_ Снизили нагрузку на админа на 70%.\n\n"
+        "🔹 *FermerHub* — Платформа-маркетплейс в Telegram.\n"
+        "   _Результат:_ Увеличение конверсии на 40% за счет отсутствия регистраций.\n\n"
+        "🔹 *Акуленок* — Автоворонка и ИИ-ассистент.\n"
+        "   _Результат:_ Круглосуточная обработка лидов, рост LTV.\n",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад", callback_data="main_menu")]]),
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+@router.callback_query(F.data == "demo_client_path")
+async def demo_client_path(callback: types.CallbackQuery):
+    await callback.message.edit_text(
+        "⚙️ *Демо-режим: Как это видит ваш клиент*\n\n"
+        "Система позволяет вашим клиентам получать услуги мгновенно, без скачивания приложений и сложных регистраций.\n\n"
+        "Попробуйте сами:",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🛍 Оформить заказ (Магазин)", callback_data="demo_niche_shop")],
+            [InlineKeyboardButton(text="🧠 Задать вопрос ИИ-консультанту", callback_data="demo_ai_ask")],
+            [InlineKeyboardButton(text="🔙 Назад", callback_data="main_menu")]
+        ]),
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+@router.callback_query(F.data == "demo_ai_ask")
+async def demo_ai_ask(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.edit_text(
+        "🧠 *ИИ-Консультант (Демо)*\n\n"
+        "Напишите любой вопрос, связанный с вашим бизнесом. "
+        "Наш встроенный ИИ сгенерирует экспертный ответ.\n\n"
+        "Жду ваш вопрос:",
+        parse_mode="Markdown"
+    )
+    await state.set_state(AIState.waiting_for_question)
+    await callback.answer()
+
+@router.message(AIState.waiting_for_question)
+async def handle_ai_question(message: types.Message, state: FSMContext):
+    await state.clear()
+
+    status_msg = await message.answer("🔄 Анализирую запрос. Загрузка данных из нейросети...", parse_mode="Markdown")
+    await message.bot.send_chat_action(chat_id=message.chat.id, action="typing")
+
+    if model:
+        try:
+             prompt = f"Ответь на вопрос пользователя профессионально и экспертно в роли бизнес-архитектора систем автоматизации: {message.text}"
+             response = await model.generate_content_async(prompt)
+             answer_text = response.text
+        except Exception as e:
+             answer_text = "❌ Ошибка при обращении к ИИ-серверу: " + str(e)
     else:
-        return InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="👤 Войти как Клиент", callback_data="role_client")],
-            [InlineKeyboardButton(text="👑 Войти как Владелец бизнеса", callback_data="role_admin")]
-        ])
+        await asyncio.sleep(3)
+        answer_text = (
+            "Это демонстрационный ответ. В реальности здесь ИИ проанализирует "
+            f"ваш вопрос ('{message.text}') и выдаст структурированный план действий.\n\n"
+            "Интеграция ИИ позволяет закрывать возражения клиентов круглосуточно."
+        )
 
-@router.callback_query(F.data.startswith("role_"))
-async def switch_role(callback: types.CallbackQuery):
-    role = callback.data.split("_")[1]
-    if role == "client":
-        text = "👤 *Режим Клиента*\n\nДобро пожаловать в демо-магазин! Выберите действие:"
-    else:
-        text = "👑 *Режим Владельца Бизнеса*\n\nДобро пожаловать в панель управления Eidos. Выберите инструмент:"
+    final_text = f"🧠 *Ответ Архитектора:*\n\n{answer_text}"
 
-    await callback.message.edit_text(text, reply_markup=get_demo_keyboard(role), parse_mode="Markdown")
+    await status_msg.edit_text(
+        final_text,
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⚙️ Вернуться в Демо", callback_data="demo_client_path")],
+            [InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]
+        ]),
+        parse_mode="Markdown"
+    )
+
+@router.callback_query(F.data.startswith("demo_niche_"))
+async def demo_niche(callback: types.CallbackQuery):
+    await callback.message.edit_text(
+        "🛍 *Оформление заказа*\n\n"
+        "Клиент нажимает пару кнопок, выбирает товар и оплачивает внутри Telegram.\n"
+        "Весь процесс занимает 30 секунд. Вы мгновенно получаете деньги и уведомление в свою CRM.\n\n"
+        "*Это сильно повышает конверсию по сравнению с сайтом.*",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад", callback_data="demo_client_path")]]),
+        parse_mode="Markdown"
+    )
     await callback.answer()
 
-@router.callback_query(F.data == "demo_catalog")
-async def demo_catalog(callback: types.CallbackQuery):
+@router.callback_query(F.data == "demo_pricing")
+async def demo_pricing(callback: types.CallbackQuery):
     text = (
-        "🛒 *Каталог (Демо)*\n\n"
-        "1. Кроссовки Nike Air (5 000 ₽)\n"
-        "2. Футболка Базовая (1 200 ₽)\n"
-        "3. Худи Оверсайз (3 500 ₽)\n\n"
-        "_В реальности здесь будут карточки с фото и кнопкой 'Купить'._"
+        "📑 *Инвестиционный Чек-лист*\n\n"
+        "Прозрачный расчет стоимости разработки вашего цифрового актива.\n\n"
+        "📦 *База [от 15k]* - Идеально для старта. Меню, воронка, сбор лидов.\n"
+        "📦 *Стандарт [от 50k]* - Интеграция БД, ИИ, полноценная мини-CRM.\n"
+        "📦 *Индивидуальный [от 150k]* - Сложные интеграции, WebApp (TWA), уникальный дизайн.\n\n"
+        "_Свяжитесь со мной для точного расчета под ваши задачи._"
     )
     markup = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Положить 1-й товар в корзину", callback_data="demo_buy")],
-        [InlineKeyboardButton(text="🔙 Назад", callback_data="role_client")]
+        [InlineKeyboardButton(text="💬 Обсудить проект", url=f"tg://user?id={os.getenv('ADMIN_ID', '0')}")],
+        [InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]
     ])
     await callback.message.edit_text(text, reply_markup=markup, parse_mode="Markdown")
     await callback.answer()
 
-@router.callback_query(F.data == "demo_buy")
-async def demo_buy(callback: types.CallbackQuery):
-    await callback.answer("✅ Товар добавлен в корзину! (демо)", show_alert=True)
-
-@router.callback_query(F.data == "demo_analytics")
-async def demo_analytics(callback: types.CallbackQuery):
-    text = (
-        "📊 *Аналитика за сегодня (Демо)*\n\n"
-        "🔹 Просмотров: 1 245\n"
-        "🔹 Новых клиентов: 15\n"
-        "🔹 Оформлено заказов: 4\n"
-        "💰 *Выручка: 24 500 ₽*\n\n"
-        "_Здесь бизнес видит ключевые метрики онлайн._"
-    )
-    markup = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔙 Назад", callback_data="role_admin")]
-    ])
-    await callback.message.edit_text(text, reply_markup=markup, parse_mode="Markdown")
-    await callback.answer()
-
-@router.callback_query(F.data == "demo_crm")
-async def demo_crm(callback: types.CallbackQuery):
-    text = (
-        "👥 *Мини-CRM (Демо)*\n\n"
-        "Новые заявки:\n"
-        "1. Иван (@ivan) — Заказ: Кроссовки Nike (Ожидает звонка)\n"
-        "2. Анна (@anna) — Бронь на 18:00 (Подтверждено)\n\n"
-        "_Владелец может принимать/отклонять заявки кнопками._"
-    )
-    markup = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✅ Принять заявку Ивана", callback_data="demo_accept")],
-        [InlineKeyboardButton(text="🔙 Назад", callback_data="role_admin")]
-    ])
-    await callback.message.edit_text(text, reply_markup=markup, parse_mode="Markdown")
-    await callback.answer()
-
-@router.callback_query(F.data == "demo_accept")
-async def demo_accept(callback: types.CallbackQuery):
-    await callback.answer("✅ Заявка принята в работу! Клиенту отправлено уведомление.", show_alert=True)
-
-@router.callback_query(F.data == "demo_booking")
-async def demo_booking(callback: types.CallbackQuery):
-    text = (
-        "📅 *Запись на услугу (Демо)*\n\n"
-        "Выберите свободное время на сегодня:\n"
-        "12:00 | 14:30 | 18:00"
-    )
-    markup = InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="12:00", callback_data="demo_book_time"),
-            InlineKeyboardButton(text="14:30", callback_data="demo_book_time"),
-            InlineKeyboardButton(text="18:00", callback_data="demo_book_time")
-        ],
-        [InlineKeyboardButton(text="🔙 Назад", callback_data="role_client")]
-    ])
-    await callback.message.edit_text(text, reply_markup=markup, parse_mode="Markdown")
-    await callback.answer()
-
-@router.callback_query(F.data == "demo_book_time")
-async def demo_book_time(callback: types.CallbackQuery):
-    await callback.answer("✅ Время забронировано!", show_alert=True)
-
-@router.callback_query(F.data.in_({"demo_loyalty", "demo_support", "demo_broadcast", "demo_settings"}))
-async def demo_stub(callback: types.CallbackQuery):
-    await callback.answer("🚧 Этот раздел в разработке (Демонстрация возможности)", show_alert=True)
+@router.callback_query(F.data == "demo_stoma_booking")
+async def demo_stoma_booking(callback: types.CallbackQuery):
+    await callback.answer("✅ (Демо) Заявка на чистку принята. Врач скоро свяжется с вами!", show_alert=True)

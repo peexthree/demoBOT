@@ -2,3 +2,4 @@ aiogram>=3.0.0
 python-dotenv
 supabase
 aiohttp
+google-generativeai==0.8.3
