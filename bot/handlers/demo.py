@@ -27,7 +27,8 @@ def get_main_menu_keyboard():
         [InlineKeyboardButton(text="🌟 [10 ИННОВАЦИЙ ДЛЯ БИЗНЕСА]", callback_data="demo_innovations")],
         [InlineKeyboardButton(text="⚙️ [ДЕМО-РЕЖИМ: АВТОМАТИЗАЦИЯ]", callback_data="demo_client_path")],
         [InlineKeyboardButton(text="📑 [ИНВЕСТИЦИОННЫЙ ЧЕК-ЛИСТ]", callback_data="demo_pricing")],
-        [InlineKeyboardButton(text="💬 [ОБСУДИТЬ ПРОЕКТ]", url=f"tg://user?id={os.getenv('ADMIN_ID', '0')}")]
+        [InlineKeyboardButton(text="💬 [ОБСУДИТЬ ПРОЕКТ]", url=f"tg://user?id={os.getenv('ADMIN_ID', '0')}")],
+        [InlineKeyboardButton(text="🔄 Меню (/start)", callback_data="main_menu")]
     ])
 
 def get_twa_reply_keyboard():
@@ -49,10 +50,6 @@ async def main_menu_handler(callback: types.CallbackQuery):
         reply_markup=get_main_menu_keyboard(),
         parse_mode="HTML"
     )
-    await callback.message.answer(
-        "Для расчета стоимости (Калькулятор Архитектора) используйте кнопку в меню ниже:",
-        reply_markup=get_twa_reply_keyboard()
-    )
     await callback.answer()
 
 @router.message(F.text == "Скрыть меню")
@@ -70,7 +67,7 @@ async def demo_portfolio(callback: types.CallbackQuery):
         "   <i>Результат:</i> Увеличение конверсии на 40% за счет отсутствия регистраций.\n\n"
         "🔹 <b>Акуленок</b> — Автоворонка и ИИ-ассистент.\n"
         "   <i>Результат:</i> Круглосуточная обработка лидов, рост LTV.\n",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад", callback_data="main_menu")]]),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню (/start)", callback_data="main_menu")]]),
         parse_mode="HTML"
     )
     await callback.answer()
@@ -89,7 +86,7 @@ async def demo_client_path(callback: types.CallbackQuery, state: FSMContext):
             [InlineKeyboardButton(text="🦷 Стоматология", callback_data="niche_dentist")],
             [InlineKeyboardButton(text="🚗 Автосервис / СТО", callback_data="niche_auto")],
             [InlineKeyboardButton(text="💅 Салон красоты", callback_data="niche_beauty")],
-            [InlineKeyboardButton(text="🔙 Назад", callback_data="main_menu")]
+            [InlineKeyboardButton(text="🔙 Главное меню (/start)", callback_data="main_menu")]
         ]),
         parse_mode="HTML"
     )
@@ -282,7 +279,7 @@ async def demo_pricing(callback: types.CallbackQuery):
     )
     markup = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💬 Обсудить проект", url=f"tg://user?id={os.getenv('ADMIN_ID', '0')}")],
-        [InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]
+        [InlineKeyboardButton(text="🔙 Главное меню (/start)", callback_data="main_menu")]
     ])
     await callback.message.edit_text(text, reply_markup=markup, parse_mode="HTML")
     await callback.answer()
@@ -411,7 +408,10 @@ async def demo_calculator(callback: types.CallbackQuery, state: FSMContext):
     niche = data.get("niche", "default")
     niche_name = data.get("niche_name", "Ваш бизнес")
 
-    step = callback.data.split("_")[-1] if "_" in callback.data else "start"
+    if callback.data == "demo_calc":
+        step = "start"
+    else:
+        step = callback.data.replace("demo_calc_", "")
 
     # Define questions based on niche
     questions = {
@@ -648,7 +648,7 @@ async def demo_innovations(callback: types.CallbackQuery):
     )
     await callback.message.edit_text(
         text,
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]]),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню (/start)", callback_data="main_menu")]]),
         parse_mode="HTML"
     )
     await callback.answer()
