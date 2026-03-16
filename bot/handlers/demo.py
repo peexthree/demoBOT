@@ -15,9 +15,8 @@ class AIState(StatesGroup):
 
 def get_main_menu_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⚙️ ТЕСТ-ДРАЙВ: ИИ В ВАШЕЙ НИШЕ", callback_data="demo_client_path")],
+        [InlineKeyboardButton(text="🚀 Демонстрация работы с клиентами", callback_data="demo_client_path")],
         [InlineKeyboardButton(text="🌟 ТОЧКИ РОСТА И ИННОВАЦИИ", callback_data="demo_innovations")],
-        [InlineKeyboardButton(text="📑 КОНФИГУРАТОР СИСТЕМЫ (Web App)", web_app=types.WebAppInfo(url=os.getenv("WEBAPP_URL", "https://lid-flow.vercel.app/twa")))],
         [InlineKeyboardButton(text="📑 ОЦЕНКА СТОИМОСТИ ВНЕДРЕНИЯ", callback_data="demo_pricing")],
         [InlineKeyboardButton(text="🤝 ПАРТНЕРСКАЯ ПРОГРАММА", callback_data="demo_referral")],
         [InlineKeyboardButton(text="💬 СВЯЗАТЬСЯ С АРХИТЕКТОРОМ", url=f"tg://user?id={os.getenv('ADMIN_ID', '0')}")]
@@ -27,7 +26,7 @@ def get_twa_reply_keyboard():
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="🏠 Главное меню")],
-            [KeyboardButton(text="🌐 Открыть Web App", web_app=types.WebAppInfo(url=os.getenv("WEBAPP_URL", "https://lid-flow.vercel.app/twa")))]
+            [KeyboardButton(text="📊 Расчет стоимости внедрения", web_app=types.WebAppInfo(url=os.getenv("WEBAPP_URL", "https://lid-flow.vercel.app/twa")))]
         ],
         resize_keyboard=True,
         is_persistent=True
