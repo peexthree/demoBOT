@@ -14,11 +14,12 @@ class AIState(StatesGroup):
 
 def get_main_menu_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🚀 [ПОСМОТРЕТЬ РЕШЕНИЯ]", callback_data="demo_portfolio")],
-        [InlineKeyboardButton(text="🌟 [10 ИННОВАЦИЙ ДЛЯ БИЗНЕСА]", callback_data="demo_innovations")],
-        [InlineKeyboardButton(text="⚙️ [ДЕМО-РЕЖИМ: АВТОМАТИЗАЦИЯ]", callback_data="demo_client_path")],
-        [InlineKeyboardButton(text="📑 [ИНВЕСТИЦИОННЫЙ ЧЕК-ЛИСТ]", callback_data="demo_pricing")],
-        [InlineKeyboardButton(text="💬 [ОБСУДИТЬ ПРОЕКТ]", url=f"tg://user?id={os.getenv('ADMIN_ID', '0')}")],
+        [InlineKeyboardButton(text="🚀 [КЕЙСЫ И РЕШЕНИЯ ДЛЯ БИЗНЕСА]", callback_data="demo_portfolio")],
+        [InlineKeyboardButton(text="🌟 [ТОЧКИ РОСТА И ИННОВАЦИИ]", callback_data="demo_innovations")],
+        [InlineKeyboardButton(text="🧠 [МОДЕЛИ ИИ ДЛЯ БИЗНЕСА]", callback_data="demo_ai_models")],
+        [InlineKeyboardButton(text="⚙️ [ТЕСТ-ДРАЙВ: ИИ В ВАШЕЙ НИШЕ]", callback_data="demo_client_path")],
+        [InlineKeyboardButton(text="📑 [ОЦЕНКА СТОИМОСТИ ВНЕДРЕНИЯ]", callback_data="demo_pricing")],
+        [InlineKeyboardButton(text="💬 [СВЯЗАТЬСЯ С АРХИТЕКТОРОМ]", url=f"tg://user?id={os.getenv('ADMIN_ID', '0')}")],
         [InlineKeyboardButton(text="🤝 [ПАРТНЕРСКАЯ ПРОГРАММА]", callback_data="demo_referral")]
     ])
 
@@ -72,12 +73,12 @@ async def demo_client_path(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(DemoStates.choosing_niche)
     await callback.message.edit_text(
         "⚙️ <b>Выберите нишу для демонстрации</b>\n\n"
-        "Я моментально адаптируюсь под любой бизнес. Выберите отрасль, чтобы увидеть, как бот общается с клиентами:",
+        "AI моментально адаптируется под любой процесс. Выберите отрасль, чтобы увидеть, как бот общается с клиентами:",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="⚖️ Юрист", callback_data="niche_lawyer")],
-            [InlineKeyboardButton(text="🦷 Стоматология", callback_data="niche_dentist")],
-            [InlineKeyboardButton(text="🚗 Автосервис / СТО", callback_data="niche_auto")],
-            [InlineKeyboardButton(text="💅 Салон красоты", callback_data="niche_beauty")],
+            [InlineKeyboardButton(text="⚖️ Юридические услуги (Консалтинг)", callback_data="niche_lawyer")],
+            [InlineKeyboardButton(text="🏥 Медицина и клиники", callback_data="niche_dentist")],
+            [InlineKeyboardButton(text="🚗 Автобизнес и СТО", callback_data="niche_auto")],
+            [InlineKeyboardButton(text="💅 Сфера услуг и Beauty", callback_data="niche_beauty")],
             [InlineKeyboardButton(text="🔙 Главное меню (/start)", callback_data="main_menu")]
         ]),
         parse_mode="HTML"
@@ -90,9 +91,9 @@ async def niche_selected(callback: types.CallbackQuery, state: FSMContext):
 
     niche_data = {
         "lawyer": ("⚖️ Юридическая компания 'Право и Закон'", "оформлении документов и защите прав"),
-        "dentist": ("🦷 Стоматология 'Здоровая Улыбка'", "записи на прием и ценах на лечение"),
+        "dentist": ("🏥 Медицина и клиники 'Здоровая Улыбка'", "записи на прием и ценах на лечение"),
         "auto": ("🚗 Автосервис 'Драйв'", "ремонте, запчастях и записи на диагностику"),
-        "beauty": ("💅 Салон красоты 'Элеганс'", "услугах, мастерах и записи на процедуры")
+        "beauty": ("💅 Сфера услуг и Beauty 'Элеганс'", "услугах, мастерах и записи на процедуры")
     }
 
     name, spec = niche_data.get(niche, ("Ваш бизнес", "ваших услугах"))
@@ -105,12 +106,12 @@ async def niche_selected(callback: types.CallbackQuery, state: FSMContext):
         f"Я ваш виртуальный помощник. Я могу проконсультировать вас по {spec}, а также записать на удобное время.\n\n"
         "Что вас интересует?",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🧠 Задать вопрос ИИ (FAQ & Консультация)", callback_data="demo_ai_ask")],
-            [InlineKeyboardButton(text="📷 Анализ по фото (Vision ИИ)", callback_data="demo_vision")],
-            [InlineKeyboardButton(text="📄 Парсинг смет (Отправьте PDF)", callback_data="demo_docs")],
-            [InlineKeyboardButton(text="🎤 Записать аудио (Голосовой ИИ)", callback_data="demo_voice")],
-            [InlineKeyboardButton(text="🧮 Калькулятор стоимости", callback_data="demo_calculator")],
-            [InlineKeyboardButton(text="🎁 Получить промокод", callback_data="demo_promo")],
+            [InlineKeyboardButton(text="🧠 Тест ИИ-консультанта (FAQ)", callback_data="demo_ai_ask")],
+            [InlineKeyboardButton(text="📷 Распознавание фото (Оценка)", callback_data="demo_vision")],
+            [InlineKeyboardButton(text="📄 Авто-обработка документов (PDF)", callback_data="demo_docs")],
+            [InlineKeyboardButton(text="🎤 Голосовой прием заявок", callback_data="demo_voice")],
+            [InlineKeyboardButton(text="🧮 Интерактивный расчет стоимости", callback_data="demo_calculator")],
+            [InlineKeyboardButton(text="🎁 Система лояльности (Промокоды)", callback_data="demo_promo")],
             [InlineKeyboardButton(text="🔙 Сменить нишу", callback_data="demo_client_path")]
         ]),
         parse_mode="HTML"
@@ -548,12 +549,12 @@ async def demo_niche_back(callback: types.CallbackQuery, state: FSMContext):
         f"Я ваш виртуальный помощник. Я могу проконсультировать вас по {spec}, а также записать на удобное время.\n\n"
         "Что вас интересует?",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🧠 Задать вопрос ИИ (FAQ & Консультация)", callback_data="demo_ai_ask")],
-            [InlineKeyboardButton(text="📷 Анализ по фото (Vision ИИ)", callback_data="demo_vision")],
-            [InlineKeyboardButton(text="📄 Парсинг смет (Отправьте PDF)", callback_data="demo_docs")],
-            [InlineKeyboardButton(text="🎤 Записать аудио (Голосовой ИИ)", callback_data="demo_voice")],
-            [InlineKeyboardButton(text="🧮 Калькулятор стоимости", callback_data="demo_calculator")],
-            [InlineKeyboardButton(text="🎁 Получить промокод", callback_data="demo_promo")],
+            [InlineKeyboardButton(text="🧠 Тест ИИ-консультанта (FAQ)", callback_data="demo_ai_ask")],
+            [InlineKeyboardButton(text="📷 Распознавание фото (Оценка)", callback_data="demo_vision")],
+            [InlineKeyboardButton(text="📄 Авто-обработка документов (PDF)", callback_data="demo_docs")],
+            [InlineKeyboardButton(text="🎤 Голосовой прием заявок", callback_data="demo_voice")],
+            [InlineKeyboardButton(text="🧮 Интерактивный расчет стоимости", callback_data="demo_calculator")],
+            [InlineKeyboardButton(text="🎁 Система лояльности (Промокоды)", callback_data="demo_promo")],
             [InlineKeyboardButton(text="🔙 Сменить нишу", callback_data="demo_client_path")]
         ]),
         parse_mode="HTML"
@@ -561,7 +562,31 @@ async def demo_niche_back(callback: types.CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
+
+@router.callback_query(F.data == "demo_ai_models")
+async def demo_ai_models(callback: types.CallbackQuery):
+    text = (
+        "🧠 <b>Модели ИИ для вашего бизнеса</b>\n\n"
+        "<i>Мы интегрируем передовые генеративные модели для решения корпоративных задач:</i>\n\n"
+        "🔹 <b>Gemini 3.1 Pro</b>\n"
+        "Идеально для сложной аналитики, стратегического планирования и создания автономных AI-агентов. Глубокое понимание бизнес-процессов.\n\n"
+        "🔹 <b>Gemini 3 Flash & 3.1 Flash-Lite</b>\n"
+        "Сверхбыстрая обработка массовых обращений, парсинг данных и маршрутизация клиентов. Максимальная скорость при низких затратах.\n\n"
+        "🔹 <b>Vision (Анализ изображений)</b>\n"
+        "Автоматическая оценка ущерба, распознавание товаров на полке, чтение схем и графиков без участия человека.\n\n"
+        "🔹 <b>Голосовые ИИ-ассистенты</b>\n"
+        "Прием заявок голосом, транскрибация совещаний и автоматическое заполнение CRM на основе разговора.\n\n"
+        "<i>Все модели работают в единой связке (бесшовный fallback) для обеспечения 100% отказоустойчивости и минимизации расходов на API.</i>"
+    )
+    await callback.message.edit_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню (/start)", callback_data="main_menu")]]),
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
 # Creative improvements showcase
+
 
 @router.callback_query(F.data == "demo_niche_back")
 async def demo_niche_back(callback: types.CallbackQuery, state: FSMContext):
@@ -589,19 +614,20 @@ async def demo_niche_back(callback: types.CallbackQuery, state: FSMContext):
         f"Я ваш виртуальный помощник. Я могу проконсультировать вас по {spec}, а также записать на удобное время.\n\n"
         "Что вас интересует?",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🧠 Задать вопрос ИИ (FAQ & Консультация)", callback_data="demo_ai_ask")],
-            [InlineKeyboardButton(text="📷 Анализ по фото (Vision ИИ)", callback_data="demo_vision")],
-            [InlineKeyboardButton(text="📄 Парсинг смет (Отправьте PDF)", callback_data="demo_docs")],
-            [InlineKeyboardButton(text="🎤 Записать аудио (Голосовой ИИ)", callback_data="demo_voice")],
-            [InlineKeyboardButton(text="🧮 Калькулятор стоимости", callback_data="demo_calculator")],
-            [InlineKeyboardButton(text="🎁 Получить промокод", callback_data="demo_promo")],
+            [InlineKeyboardButton(text="🧠 Тест ИИ-консультанта (FAQ)", callback_data="demo_ai_ask")],
+            [InlineKeyboardButton(text="📷 Распознавание фото (Оценка)", callback_data="demo_vision")],
+            [InlineKeyboardButton(text="📄 Авто-обработка документов (PDF)", callback_data="demo_docs")],
+            [InlineKeyboardButton(text="🎤 Голосовой прием заявок", callback_data="demo_voice")],
+            [InlineKeyboardButton(text="🧮 Интерактивный расчет стоимости", callback_data="demo_calculator")],
+            [InlineKeyboardButton(text="🎁 Система лояльности (Промокоды)", callback_data="demo_promo")],
             [InlineKeyboardButton(text="🔙 Сменить нишу", callback_data="demo_client_path")]
         ]),
         parse_mode="HTML"
     )
     await callback.answer()
 
-# Creative improvements showcase
+
+
 @router.callback_query(F.data == "demo_innovations")
 async def demo_innovations(callback: types.CallbackQuery):
     text = (
@@ -711,9 +737,8 @@ async def handle_document(message: types.Message, state: FSMContext):
 @router.callback_query(F.data == "demo_docs")
 async def demo_docs(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
-        "📄 <b>Умный Парсинг Смет и Документов</b>
+        "📄 <b>Умный Парсинг Смет и Документов</b>\n\n"
 
-"
         "Отправьте мне любой PDF, Excel файл или скан счета. ИИ моментально прочитает его и сопоставит с прайсом CRM.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад / Отменить", callback_data="demo_niche_back")]]),
         parse_mode="HTML"

@@ -11,11 +11,15 @@ except ImportError:
     pass
 
 # List of models to fallback to in case of rate limits or errors
+# Ordered from most cost-efficient/fastest to most capable/heaviest
 GEMINI_MODELS = [
+    "gemini-3.1-flash-lite-preview",
+    "gemini-3-flash-preview",
+    "gemini-3.1-pro-preview",
+    "gemini-2.5-flash-lite",
     "gemini-2.5-flash",
     "gemini-2.5-pro",
-    "gemini-2.0-flash",
-    "gemini-1.5-pro"
+    "gemini-2.0-flash"
 ]
 
 async def generate_with_fallback(prompt, image_parts=None, file_part=None):
