@@ -15,9 +15,9 @@ async def start_cmd(message: types.Message, command: CommandObject):
         args = command.args
         if args == "demo_stomatology":
              await message.answer(
-                 "🦷 *Запуск персонального демо: Стоматология*\n\n"
+                 "🦷 <b>Запуск персонального демо: Стоматология</b>\n\n"
                  "Инициализация процессов...",
-                 parse_mode="Markdown"
+                 parse_mode="HTML"
              )
              await message.bot.send_chat_action(chat_id=message.chat.id, action="typing")
              await asyncio.sleep(2)
@@ -29,20 +29,36 @@ async def start_cmd(message: types.Message, command: CommandObject):
                      [InlineKeyboardButton(text="Записаться на чистку (Демо)", callback_data="demo_stoma_booking")],
                      [InlineKeyboardButton(text="🔙 В главное меню системы", callback_data="main_menu")]
                  ]),
-                 parse_mode="Markdown"
+                 parse_mode="HTML"
              )
              return
 
     # Обычный старт
+    # Feature 9: Rich Media Greeting
+    from datetime import datetime
+    current_hour = datetime.now().hour
+    if 5 <= current_hour < 12:
+        greeting = "Доброе утро"
+    elif 12 <= current_hour < 18:
+        greeting = "Добрый день"
+    else:
+        greeting = "Добрый вечер"
+
     welcome_text = (
-        "🤖 *Eidos System* — цифровой шоурум Архитектора.\n\n"
-        "Вы находитесь в демо-версии премиальной системы автоматизации бизнеса.\n\n"
-        "Выберите уровень доступа:"
+        f"🌆 <b>{greeting}, {message.from_user.first_name}!</b>\n\n"
+        "<b>Eidos System</b> — цифровой шоурум Архитектора систем автоматизации.\n\n"
+        "💡 <i>Я не просто бот, я — демонстрация того, как ваш бизнес может работать 24/7 без участия человека.</i>\n\n"
+        "<b>Мои возможности:</b>\n"
+        "🔹 Генерация лидов и сбор заявок\n"
+        "🔹 Умный ИИ-ассистент с пониманием голоса и фото\n"
+        "🔹 Интеграция с CRM и аналитикой\n\n"
+        "👇 <b>Выберите раздел для погружения:</b>"
     )
 
     markup = get_main_menu_keyboard()
 
-    await message.answer(welcome_text, reply_markup=markup, parse_mode="Markdown")
+    # If the user has a profile photo or we just send an HTML message (simulating a banner with rich text)
+    await message.answer(welcome_text, reply_markup=markup, parse_mode="HTML")
     await message.answer(
         "Для расчета стоимости (Калькулятор Архитектора) используйте кнопку в меню ниже:",
         reply_markup=get_twa_reply_keyboard()

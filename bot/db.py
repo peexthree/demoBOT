@@ -1,3 +1,4 @@
+
 import os
 import logging
 from supabase import create_client, Client
@@ -9,6 +10,10 @@ supabase: Client | None = None
 
 if url and key:
     try:
+        if url.startswith("postgresql://"):
+            parts = url.split("postgres.")[1].split(":")
+            project_ref = parts[0]
+            url = f"https://{project_ref}.supabase.co"
         supabase = create_client(url, key)
         logging.info("Успешное подключение к Supabase.")
     except Exception as e:
@@ -23,7 +28,7 @@ def save_lead_request(data: dict):
 
     try:
         response = supabase.table("leads").insert(data).execute()
-        logging.info(f"Лид успешно сохранен: {response.data}")
+        logging.info(f"Лид успешно сохранен")
     except Exception as e:
         logging.error(f"Ошибка при сохранении лида: {e}")
 
@@ -32,12 +37,8 @@ def save_event(data: dict):
         logging.warning(f"Моковое сохранение события: {data}")
         return
 
-
     try:
-        # Temporary fix: event logging to DB disabled to avoid missing table error
-        # response = supabase.table("events").insert(data).execute()
-        # logging.info(f"Событие успешно сохранено: {response.data}")
-        logging.info(f"Событие сохранено локально (БД отключена для events): {data}")
+        response = supabase.table("events").insert(data).execute()
+        logging.info(f"Событие успешно сохранено")
     except Exception as e:
-
         logging.error(f"Ошибка при сохранении события: {e}")

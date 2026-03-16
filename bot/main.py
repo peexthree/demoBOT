@@ -32,7 +32,7 @@ def main():
         bot_token = "123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi" # valid format
         is_mock = True
 
-    bot = Bot(token=bot_token, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
+    bot = Bot(token=bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
 
     # Регистрация Middlewares

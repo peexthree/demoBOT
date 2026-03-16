@@ -8,3 +8,11 @@ class ClientStatesGroup(StatesGroup):
 class AdminStatesGroup(StatesGroup):
     broadcasting = State()
     analyzing = State()
+
+class DemoStates(StatesGroup):
+    choosing_niche = State()
+    in_niche = State()
+    waiting_for_photo = State()
+    waiting_for_voice = State()
+    waiting_for_question = State()
+    nps_feedback = State()

@@ -127,14 +127,14 @@ class SmartStalkerMiddleware(BaseMiddleware):
              username_display = f"@{session['username']}" if not session['username'].isdigit() else f"ID:{session['username']}"
 
              message_text = (
-                 f"⚠️ *Умный Алерт (Stalker)*\n\n"
+                 f"⚠️ <b>Умный Алерт (Stalker)</b>\n\n"
                  f"Лид {username_display} активировал важный триггер!\n"
-                 f"Уровень интереса: *{interest_level}*\n\n"
+                 f"Уровень интереса: <b>{interest_level}</b>\n\n"
                  f"Последние действия:\n`{recent_path}`"
              )
 
              try:
-                 await bot.send_message(chat_id=admin_id, text=message_text, parse_mode="Markdown")
+                 await bot.send_message(chat_id=admin_id, text=message_text, parse_mode="HTML")
                  # Флаг, чтобы не спамить при повторном клике на ту же кнопку подряд
                  session["alert_sent"] = True
              except Exception as e:
