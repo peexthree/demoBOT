@@ -4,7 +4,7 @@ from aiogram import Router, types
 from aiogram.filters import CommandStart, CommandObject
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-from handlers.demo import get_main_menu_keyboard
+from handlers.demo import get_main_menu_keyboard, get_twa_reply_keyboard
 
 router = Router()
 
@@ -43,3 +43,7 @@ async def start_cmd(message: types.Message, command: CommandObject):
     markup = get_main_menu_keyboard()
 
     await message.answer(welcome_text, reply_markup=markup, parse_mode="Markdown")
+    await message.answer(
+        "Для расчета стоимости (Калькулятор Архитектора) используйте кнопку в меню ниже:",
+        reply_markup=get_twa_reply_keyboard()
+    )
