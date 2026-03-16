@@ -10,6 +10,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from aiogram.types import ErrorEvent
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
+from aiogram.client.session.aiohttp import AiohttpSession
+from aiogram.client.session.middlewares.base import BaseRequestMiddleware
+from aiogram.exceptions import TelegramConflictError
 from aiogram.client.default import DefaultBotProperties
 from aiohttp import web
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
@@ -23,6 +26,18 @@ logging.basicConfig(level=logging.INFO)
 
 async def health_check(request):
     return web.Response(text="OK")
+
+class PollingConflictMiddleware(BaseRequestMiddleware):
+    async def __call__(self, make_request, bot, method):
+        try:
+            return await make_request(bot, method)
+        except TelegramConflictError as e:
+            if getattr(method, "__class__", None).__name__ == "GetUpdates":
+                logging.info("Another bot instance is polling. Pausing this instance's polling to prevent conflict errors.")
+                await asyncio.sleep(86400) # Sleep indefinitely
+                return []
+            raise e
+
 
 # Global error handler
 
@@ -61,7 +76,9 @@ def main():
         bot_token = "123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi" # valid format
         is_mock = True
 
-    bot = Bot(token=bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    session = AiohttpSession()
+    session.middleware(PollingConflictMiddleware())
+    bot = Bot(token=bot_token, session=session, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
 
     # Регистрация Middlewares
@@ -131,7 +148,7 @@ def main():
 
             # Запускаем поллинг как фоновую задачу
             logging.info("Starting polling task...")
-            app['polling_task'] = asyncio.create_task(dp.start_polling(bot))
+            app['polling_task'] = asyncio.create_task(dp.start_polling(bot, handle_signals=False))
 
         async def on_startup_polling(app):
             app['delayed_task'] = asyncio.create_task(delayed_polling(app))
