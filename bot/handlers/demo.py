@@ -15,24 +15,24 @@ class AIState(StatesGroup):
 
 def get_main_menu_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🚀 [КЕЙСЫ И РЕШЕНИЯ ДЛЯ БИЗНЕСА]", callback_data="demo_portfolio")],
-        [InlineKeyboardButton(text="🌟 [ТОЧКИ РОСТА И ИННОВАЦИИ]", callback_data="demo_innovations")],
-        [InlineKeyboardButton(text="🧠 [МОДЕЛИ ИИ ДЛЯ БИЗНЕСА]", callback_data="demo_ai_models")],
-        [InlineKeyboardButton(text="⚙️ [ТЕСТ-ДРАЙВ: ИИ В ВАШЕЙ НИШЕ]", callback_data="demo_client_path")],
-        [InlineKeyboardButton(text="📑 [ОЦЕНКА СТОИМОСТИ ВНЕДРЕНИЯ]", callback_data="demo_pricing")],
-        [InlineKeyboardButton(text="💬 [СВЯЗАТЬСЯ С АРХИТЕКТОРОМ]", url=f"tg://user?id={os.getenv('ADMIN_ID', '0')}")],
-        [InlineKeyboardButton(text="🤝 [ПАРТНЕРСКАЯ ПРОГРАММА]", callback_data="demo_referral")]
+        [InlineKeyboardButton(text="⚙️ ТЕСТ-ДРАЙВ: ИИ В ВАШЕЙ НИШЕ", callback_data="demo_client_path")],
+        [InlineKeyboardButton(text="🚀 КЕЙСЫ И РЕШЕНИЯ ДЛЯ БИЗНЕСА", callback_data="demo_portfolio")],
+        [InlineKeyboardButton(text="🌟 ТОЧКИ РОСТА И ИННОВАЦИИ", callback_data="demo_innovations")],
+        [InlineKeyboardButton(text="🧠 МОДЕЛИ ИИ ДЛЯ БИЗНЕСА", callback_data="demo_ai_models")],
+        [InlineKeyboardButton(text="📑 КОНФИГУРАТОР СИСТЕМЫ (Web App)", web_app=types.WebAppInfo(url=os.getenv("WEBAPP_URL", "https://lid-flow.vercel.app/twa")))],
+        [InlineKeyboardButton(text="📑 ОЦЕНКА СТОИМОСТИ ВНЕДРЕНИЯ", callback_data="demo_pricing")],
+        [InlineKeyboardButton(text="🤝 ПАРТНЕРСКАЯ ПРОГРАММА", callback_data="demo_referral")],
+        [InlineKeyboardButton(text="💬 СВЯЗАТЬСЯ С АРХИТЕКТОРОМ", url=f"tg://user?id={os.getenv('ADMIN_ID', '0')}")]
     ])
 
 def get_twa_reply_keyboard():
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="📊 ОТКРЫТЬ КАЛЬКУЛЯТОР", web_app=types.WebAppInfo(url=os.getenv("WEBAPP_URL", "https://lid-flow.vercel.app/twa")))],
-            [KeyboardButton(text="Вызвать меню")],
-            [KeyboardButton(text="Скрыть меню")]
+            [KeyboardButton(text="🏠 Главное меню")],
+            [KeyboardButton(text="🌐 Открыть Web App", web_app=types.WebAppInfo(url=os.getenv("WEBAPP_URL", "https://lid-flow.vercel.app/twa")))]
         ],
         resize_keyboard=True,
-        is_persistent=False
+        is_persistent=True
     )
 
 @router.callback_query(F.data == "main_menu")
@@ -46,7 +46,7 @@ async def main_menu_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@router.message(F.text == "Скрыть меню")
+#@router.message(F.text == "Скрыть меню")
 async def hide_keyboard_handler(message: types.Message):
     await message.answer("Меню скрыто. Чтобы вернуть его, перезапустите бота командой /start.", reply_markup=ReplyKeyboardRemove())
 
@@ -61,7 +61,7 @@ async def demo_portfolio(callback: types.CallbackQuery):
         "   <i>Результат:</i> Увеличение конверсии на 40% за счет отсутствия регистраций.\n\n"
         "🔹 <b>Акуленок</b> — Автоворонка и ИИ-ассистент.\n"
         "   <i>Результат:</i> Круглосуточная обработка лидов, рост LTV.\n",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню (/start)", callback_data="main_menu")]]),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]]),
         parse_mode="HTML"
     )
     await callback.answer()
@@ -80,7 +80,7 @@ async def demo_client_path(callback: types.CallbackQuery, state: FSMContext):
             [InlineKeyboardButton(text="🏥 Медицина и клиники", callback_data="niche_dentist")],
             [InlineKeyboardButton(text="🚗 Автобизнес и СТО", callback_data="niche_auto")],
             [InlineKeyboardButton(text="💅 Сфера услуг и Beauty", callback_data="niche_beauty")],
-            [InlineKeyboardButton(text="🔙 Главное меню (/start)", callback_data="main_menu")]
+            [InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]
         ]),
         parse_mode="HTML"
     )
@@ -273,7 +273,7 @@ async def demo_pricing(callback: types.CallbackQuery):
     )
     markup = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💬 Обсудить проект", url=f"tg://user?id={os.getenv('ADMIN_ID', '0')}")],
-        [InlineKeyboardButton(text="🔙 Главное меню (/start)", callback_data="main_menu")]
+        [InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]
     ])
     await callback.message.edit_text(text, reply_markup=markup, parse_mode="HTML")
     await callback.answer()
@@ -580,7 +580,7 @@ async def demo_ai_models(callback: types.CallbackQuery):
     )
     await callback.message.edit_text(
         text,
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню (/start)", callback_data="main_menu")]]),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]]),
         parse_mode="HTML"
     )
     await callback.answer()
@@ -588,51 +588,114 @@ async def demo_ai_models(callback: types.CallbackQuery):
 # Creative improvements showcase
 
 
-@router.callback_query(F.data == "demo_innovations")
-async def demo_innovations(callback: types.CallbackQuery):
+INNOVATIONS_LIST = [
+    (
+        "1️⃣ <b>Генератор Коммерческих Предложений (PDF)</b>\n"
+        "▪️ <b>Что это:</b> Бот задает клиенту 3 уточняющих вопроса и мгновенно формирует стильный PDF-документ с расчетом, вашим логотипом и контактами менеджера.\n"
+        "▪️ <b>Зачем:</b> Сокращает цикл сделки. Пока конкуренты берут время на расчет, вы уже отправляете готовое КП, удерживая горячего лида."
+    ),
+    (
+        "2️⃣ <b>DeepFake-Аватары и Видео-Презентации</b>\n"
+        "▪️ <b>Что это:</b> Генерация персонализированных видео на лету. Цифровой аватар руководителя обращается к клиенту по имени и кратко презентует нужный продукт.\n"
+        "▪️ <b>Зачем:</b> Вау-эффект и радикальное повышение доверия. Персональное внимание в B2B ценится крайне высоко и повышает конверсию."
+    ),
+    (
+        "3️⃣ <b>Умный Парсинг Смет и Спецификаций</b>\n"
+        "▪️ <b>Что это:</b> Клиент загружает фото спецификации или Excel. Нейросеть распознает позиции, сопоставляет их с вашей базой 1С/МойСклад и выдает готовый счет.\n"
+        "▪️ <b>Зачем:</b> Экономит часы рутинной работы менеджеров. Снижает риск человеческой ошибки при вводе сложных номенклатур."
+    ),
+    (
+        "4️⃣ <b>Интеграция с ERP/CRM (Реал-тайм склад)</b>\n"
+        "▪️ <b>Что это:</b> Клиент прямо в боте может проверить наличие товара на складе, статус отгрузки, трек-номер логистики или баланс взаиморасчетов.\n"
+        "▪️ <b>Зачем:</b> Снижает нагрузку на колл-центр до 60%. Клиенты получают нужную информацию 24/7 без ожидания ответа живого человека."
+    ),
+    (
+        "5️⃣ <b>Предиктивная Аналитика Закупок</b>\n"
+        "▪️ <b>Что это:</b> Нейросеть анализирует историю заказов контрагента и проактивно пишет: <i>«Иван, по нашим данным вам пора пополнить запасы материала X. Сформировать счет со скидкой 5%?»</i>\n"
+        "▪️ <b>Зачем:</b> Увеличение LTV (пожизненной ценности). Бот сам делает допродажи и напоминает о регулярных закупках, не давая клиенту уйти к конкурентам."
+    ),
+    (
+        "6️⃣ <b>AI-Скоринг Контрагентов</b>\n"
+        "▪️ <b>Что это:</b> Клиент (или ваш менеджер) отправляет ИНН, а бот выдает экспресс-отчет о надежности компании (суды, долги, финансы) через интеграцию с сервисами проверки.\n"
+        "▪️ <b>Зачем:</b> Моментальная оценка рисков перед заключением сделки или предоставлением отсрочки платежа прямо в мессенджере."
+    ),
+    (
+        "7️⃣ <b>AR-Каталог Оборудования (Web 3D)</b>\n"
+        "▪️ <b>Что это:</b> По клику из бота открывается Web App (TWA), где клиент может покрутить 3D-модель станка/продукта, рассмотреть узлы или «примерить» его габариты в своем цеху через камеру.\n"
+        "▪️ <b>Зачем:</b> Заменяет физический шоурум. Идеально для демонстрации сложного, дорогого или крупногабаритного оборудования удаленным клиентам."
+    ),
+    (
+        "8️⃣ <b>Voice-to-Task (Голосовые Заказы)</b>\n"
+        "▪️ <b>Что это:</b> Клиент наговаривает аудио: <i>«Повтори прошлый заказ на 10 тонн арматуры, доставка на вторник»</i>. ИИ расшифровывает голос, находит заказ и создает заявку в CRM.\n"
+        "▪️ <b>Зачем:</b> Максимальное удобство для ЛПР (лиц, принимающих решения), которые часто находятся в дороге или на производстве и не имеют времени печатать."
+    ),
+    (
+        "9️⃣ <b>Геймифицированный Онбординг Партнеров</b>\n"
+        "▪️ <b>Что это:</b> Интерактивные квесты для обучения дилеров или франчайзи. За изучение материалов и прохождение тестов прямо в боте они получают баллы лояльности или повышенную скидку.\n"
+        "▪️ <b>Зачем:</b> Резко ускоряет адаптацию новых партнеров. Геймификация заставляет их быстрее изучить ваш продукт и начать продавать."
+    ),
+    (
+        "🔟 <b>Виртуальная Переговорка (WebRTC внутри TG)</b>\n"
+        "▪️ <b>Что это:</b> По нажатию одной кнопки в боте начинается защищенный видеозвонок с закрепленным менеджером или техподдержкой — без перехода в Zoom или Skype.\n"
+        "▪️ <b>Зачем:</b> Бесшовный клиентский опыт. Вы всегда на связи в привычной для клиента среде, что повышает лояльность и ускоряет решение сложных вопросов."
+    )
+]
+
+def get_innovations_text(page: int, per_page: int = 3):
+    start_idx = page * per_page
+    end_idx = start_idx + per_page
+    items = INNOVATIONS_LIST[start_idx:end_idx]
+
     text = (
         "🌟 <b>Топ-10 B2B Инноваций для Вашего Бизнеса</b> 🌟\n\n"
         "<i>Превратите Telegram в полноценную корпоративную экосистему и опередите конкурентов. Вот чем мы можем удивить ваших клиентов:</i>\n\n"
-        "1️⃣ <b>Генератор Коммерческих Предложений (PDF)</b>\n"
-        "▪️ <b>Что это:</b> Бот задает клиенту 3 уточняющих вопроса и мгновенно формирует стильный PDF-документ с расчетом, вашим логотипом и контактами менеджера.\n"
-        "▪️ <b>Зачем:</b> Сокращает цикл сделки. Пока конкуренты берут время на расчет, вы уже отправляете готовое КП, удерживая горячего лида.\n\n"
-        "2️⃣ <b>DeepFake-Аватары и Видео-Презентации</b>\n"
-        "▪️ <b>Что это:</b> Генерация персонализированных видео на лету. Цифровой аватар руководителя обращается к клиенту по имени и кратко презентует нужный продукт.\n"
-        "▪️ <b>Зачем:</b> Вау-эффект и радикальное повышение доверия. Персональное внимание в B2B ценится крайне высоко и повышает конверсию.\n\n"
-        "3️⃣ <b>Умный Парсинг Смет и Спецификаций</b>\n"
-        "▪️ <b>Что это:</b> Клиент загружает фото спецификации или Excel. Нейросеть распознает позиции, сопоставляет их с вашей базой 1С/МойСклад и выдает готовый счет.\n"
-        "▪️ <b>Зачем:</b> Экономит часы рутинной работы менеджеров. Снижает риск человеческой ошибки при вводе сложных номенклатур.\n\n"
-        "4️⃣ <b>Интеграция с ERP/CRM (Реал-тайм склад)</b>\n"
-        "▪️ <b>Что это:</b> Клиент прямо в боте может проверить наличие товара на складе, статус отгрузки, трек-номер логистики или баланс взаиморасчетов.\n"
-        "▪️ <b>Зачем:</b> Снижает нагрузку на колл-центр до 60%. Клиенты получают нужную информацию 24/7 без ожидания ответа живого человека.\n\n"
-        "5️⃣ <b>Предиктивная Аналитика Закупок</b>\n"
-        "▪️ <b>Что это:</b> Нейросеть анализирует историю заказов контрагента и проактивно пишет: <i>«Иван, по нашим данным вам пора пополнить запасы материала X. Сформировать счет со скидкой 5%?»</i>\n"
-        "▪️ <b>Зачем:</b> Увеличение LTV (пожизненной ценности). Бот сам делает допродажи и напоминает о регулярных закупках, не давая клиенту уйти к конкурентам.\n\n"
-        "6️⃣ <b>AI-Скоринг Контрагентов</b>\n"
-        "▪️ <b>Что это:</b> Клиент (или ваш менеджер) отправляет ИНН, а бот выдает экспресс-отчет о надежности компании (суды, долги, финансы) через интеграцию с сервисами проверки.\n"
-        "▪️ <b>Зачем:</b> Моментальная оценка рисков перед заключением сделки или предоставлением отсрочки платежа прямо в мессенджере.\n\n"
-        "7️⃣ <b>AR-Каталог Оборудования (Web 3D)</b>\n"
-        "▪️ <b>Что это:</b> По клику из бота открывается Web App (TWA), где клиент может покрутить 3D-модель станка/продукта, рассмотреть узлы или «примерить» его габариты в своем цеху через камеру.\n"
-        "▪️ <b>Зачем:</b> Заменяет физический шоурум. Идеально для демонстрации сложного, дорогого или крупногабаритного оборудования удаленным клиентам.\n\n"
-        "8️⃣ <b>Voice-to-Task (Голосовые Заказы)</b>\n"
-        "▪️ <b>Что это:</b> Клиент наговаривает аудио: <i>«Повтори прошлый заказ на 10 тонн арматуры, доставка на вторник»</i>. ИИ расшифровывает голос, находит заказ и создает заявку в CRM.\n"
-        "▪️ <b>Зачем:</b> Максимальное удобство для ЛПР (лиц, принимающих решения), которые часто находятся в дороге или на производстве и не имеют времени печатать.\n\n"
-        "9️⃣ <b>Геймифицированный Онбординг Партнеров</b>\n"
-        "▪️ <b>Что это:</b> Интерактивные квесты для обучения дилеров или франчайзи. За изучение материалов и прохождение тестов прямо в боте они получают баллы лояльности или повышенную скидку.\n"
-        "▪️ <b>Зачем:</b> Резко ускоряет адаптацию новых партнеров. Геймификация заставляет их быстрее изучить ваш продукт и начать продавать.\n\n"
-        "🔟 <b>Виртуальная Переговорка (WebRTC внутри TG)</b>\n"
-        "▪️ <b>Что это:</b> По нажатию одной кнопки в боте начинается защищенный видеозвонок с закрепленным менеджером или техподдержкой — без перехода в Zoom или Skype.\n"
-        "▪️ <b>Зачем:</b> Бесшовный клиентский опыт. Вы всегда на связи в привычной для клиента среде, что повышает лояльность и ускоряет решение сложных вопросов.\n\n"
-        "💡 <i>Любая из этих функций может стать киллер-фичей вашего проекта!</i>"
     )
+
+    for item in items:
+        text += item + "\n\n"
+
+    text += f"<i>Страница {page + 1} из {(len(INNOVATIONS_LIST) + per_page - 1) // per_page}</i>\n"
+    text += "💡 <i>Любая из этих функций может стать киллер-фичей вашего проекта!</i>"
+
+    return text
+
+def get_innovations_keyboard(page: int, per_page: int = 3):
+    total_pages = (len(INNOVATIONS_LIST) + per_page - 1) // per_page
+
+    nav_buttons = []
+    if page > 0:
+        nav_buttons.append(InlineKeyboardButton(text="⬅️ Назад", callback_data=f"demo_innovations_page_{page - 1}"))
+    if page < total_pages - 1:
+        nav_buttons.append(InlineKeyboardButton(text="Вперед ➡️", callback_data=f"demo_innovations_page_{page + 1}"))
+
+    keyboard = []
+    if nav_buttons:
+        keyboard.append(nav_buttons)
+
+    keyboard.append([InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")])
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+@router.callback_query(F.data == "demo_innovations")
+async def demo_innovations(callback: types.CallbackQuery):
     await callback.message.edit_text(
-        text,
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню (/start)", callback_data="main_menu")]]),
+        get_innovations_text(0),
+        reply_markup=get_innovations_keyboard(0),
         parse_mode="HTML"
     )
     await callback.answer()
 
-@router.message(F.text == "Вызвать меню")
+@router.callback_query(F.data.startswith("demo_innovations_page_"))
+async def demo_innovations_page(callback: types.CallbackQuery):
+    page = int(callback.data.split("_")[-1])
+    await callback.message.edit_text(
+        get_innovations_text(page),
+        reply_markup=get_innovations_keyboard(page),
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+@router.message(F.text == "🏠 Главное меню")
 async def show_menu_handler(message: types.Message):
     # Instead of deleting and starting over, just send the main menu
     from bot.handlers.demo import get_main_menu_keyboard
@@ -727,7 +790,7 @@ async def demo_referral(callback: types.CallbackQuery, state: FSMContext):
 
     await callback.message.edit_text(
         text,
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню (/start)", callback_data="main_menu")]]),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]]),
         parse_mode="HTML"
     )
     await callback.answer()
