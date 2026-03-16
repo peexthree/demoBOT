@@ -168,7 +168,7 @@ async def demo_leave_lead(callback: types.CallbackQuery, state: FSMContext):
     )
 
     # Admin notification (Lead Card)
-    admin_id = os.getenv("ADMIN_ID", callback.from_user.id)
+    admin_id = callback.message.chat.id
     lead_text = (
         f"🚨 <b>НОВЫЙ ЛИД | {niche_name}</b>\n\n"
         f"👤 Клиент: @{callback.from_user.username or callback.from_user.id}\n"
@@ -243,21 +243,82 @@ async def demo_niche(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@router.callback_query(F.data == "demo_pricing")
+@router.callback_query(F.data.startswith("demo_pricing"))
 async def demo_pricing(callback: types.CallbackQuery):
-    text = (
-        "📑 <b>Инвестиционный Чек-лист</b>\n\n"
-        "Прозрачный расчет стоимости разработки вашего цифрового актива.\n\n"
-        "📦 <b>База [от 15k]</b> - Идеально для старта. Меню, воронка, сбор лидов.\n"
-        "📦 <b>Стандарт [от 50k]</b> - Интеграция БД, ИИ, полноценная мини-CRM.\n"
-        "📦 <b>Индивидуальный [от 150k]</b> - Сложные интеграции, WebApp (TWA), уникальный дизайн.\n\n"
-        "<i>Свяжитесь со мной для точного расчета под ваши задачи.</i>"
-    )
-    markup = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💬 Обсудить проект", url=f"tg://user?id={os.getenv('ADMIN_ID', '0')}")],
-        [InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]
-    ])
-    await callback.message.edit_text(text, reply_markup=markup, parse_mode="HTML")
+    # Parse pagination
+    data = callback.data
+    page = 0
+    if "_" in data and data != "demo_pricing":
+        parts = data.split("_")
+        if len(parts) >= 3 and parts[-1].isdigit():
+            page = int(parts[-1])
+
+    tariffs = [
+        (
+            "<b>1. ТАРИФ «СТАРТ» (от 21 000 ₽) — Базовая лидогенерация</b>\n"
+            "Бизнес-цель: Заменить скучный лендинг, автоматизировать сбор контактов и отвечать клиентам 24/7 без участия менеджера.\n\n"
+            "<b>Технический стек:</b> Бэкенд на Python (aiogram 3.x), облачная база данных Supabase (PostgreSQL). Размещение на надежных серверах.\n\n"
+            "<b>Наполнение (Что внутри):</b>\n"
+            "• Многоуровневое меню навигации: Четкая структура кнопок (О компании, Услуги, Прайс, FAQ).\n"
+            "• Умная форма заявки (Машина состояний): Пошаговый опрос клиента (например: «Введите имя» -> «Укажите телефон» -> «Опишите задачу»). Бот не пропустит фейковый номер.\n"
+            "• Система мгновенных алертов: Как только клиент оставляет номер, бот моментально пересылает заявку в ваш личный Telegram или в рабочий чат отдела продаж.\n"
+            "• Базовый пульт управления: Скрытая команда для администратора, позволяющая одной кнопкой разослать текст или акцию всем пользователям, которые когда-либо запускали бота."
+        ),
+        (
+            "<b>2. ТАРИФ «БИЗНЕС» (от 45 000 ₽) — Автономный отдел продаж</b>\n"
+            "Бизнес-цель: Инструмент для микро-розницы и сферы услуг. Бот берет на себя рутину: сам презентует продукт, сам продает и сам принимает деньги.\n\n"
+            "<b>Технический стек:</b> Python (aiogram 3.x), реляционная БД Supabase, интеграция банковских API (ЮKassa, СБП, Robokassa).\n\n"
+            "<b>Наполнение (Что внутри):</b>\n"
+            "<i>Включает всё из тарифа «Старт», а также:</i>\n"
+            "• Интерактивный каталог: Вывод ваших товаров или услуг по категориям с фотографиями, описанием и ценами.\n"
+            "• Модуль корзины и чекаута: Клиент собирает товары в корзину, бот автоматически высчитывает итоговую сумму заказа с учетом доставки.\n"
+            "• Прямой биллинг (Оплата онлайн): Подключение официальной кассы. Клиент вводит данные карты прямо в Telegram, деньги поступают на ваш расчетный счет ИП/ООО.\n"
+            "• Система записи (Букинг): Интерактивный календарь для выбора свободных слотов и дат (идеально для салонов, клиник, автосервисов).\n"
+            "• Экспорт данных: Выгрузка базы клиентов и истории заказов в Excel/CSV в один клик."
+        ),
+        (
+            "<b>3. ТАРИФ «МАСШТАБ» (от 120 000 ₽) — Премиальная TWA-экосистема</b>\n"
+            "Бизнес-цель: Уровень лидеров рынка. Вместо текстовых кнопок в чате — полноценный, красивый интернет-магазин или сервис, который открывается прямо внутри мессенджера.\n\n"
+            "<b>Технический стек:</b> Backend: Python. Frontend: React / Vite, Tailwind CSS. Связь через REST API. Архитектура Telegram Web Apps (TWA).\n\n"
+            "<b>Наполнение (Что внутри):</b>\n"
+            "<i>Включает всё из тарифа «Бизнес», а также:</i>\n"
+            "• Полноценный Web-интерфейс (TWA): Разработка кастомного визуального дизайна (плавные анимации, свайпы, карточки товаров), который адаптирован под ваши фирменные цвета.\n"
+            "• Продвинутый Личный Кабинет: Клиент видит статус текущего заказа, историю покупок и накопленные бонусы.\n"
+            "• Сложные фильтры: Удобный поиск товаров по характеристикам, размерам и цене (как на Wildberries или Ozon, но внутри Telegram).\n"
+            "• Бесшовная интеграция с CRM: Автоматическая передача всех лидов, новых контактов и успешных оплат напрямую в вашу систему (amoCRM или Битрикс24) по API."
+        )
+    ]
+
+    # Bounds checking
+    if page < 0:
+        page = 0
+    elif page >= len(tariffs):
+        page = len(tariffs) - 1
+
+    text = f"📑 <b>ОЦЕНКА СТОИМОСТИ ВНЕДРЕНИЯ</b> (Тариф {page + 1}/{len(tariffs)})\n\n" + tariffs[page]
+
+    # Navigation buttons
+    nav_row = []
+    if page > 0:
+        nav_row.append(InlineKeyboardButton(text="⬅️ Назад", callback_data=f"demo_pricing_{page - 1}"))
+    if page < len(tariffs) - 1:
+        nav_row.append(InlineKeyboardButton(text="Вперед ➡️", callback_data=f"demo_pricing_{page + 1}"))
+
+    keyboard = []
+    if nav_row:
+        keyboard.append(nav_row)
+
+    keyboard.append([InlineKeyboardButton(text="💬 Обсудить проект", url=f"tg://user?id={{os.getenv('ADMIN_ID', '0')}}")])
+    keyboard.append([InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")])
+
+    markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+    try:
+        await callback.message.edit_text(text, reply_markup=markup, parse_mode="HTML")
+    except Exception as e:
+        # Ignore message not modified error
+        pass
+
     await callback.answer()
 
 @router.callback_query(F.data == "demo_stoma_booking")
@@ -602,7 +663,7 @@ INNOVATIONS_LIST = [
     )
 ]
 
-def get_innovations_text(page: int, per_page: int = 3):
+def get_innovations_text(page: int, per_page: int = 1):
     start_idx = page * per_page
     end_idx = start_idx + per_page
     items = INNOVATIONS_LIST[start_idx:end_idx]
@@ -620,7 +681,7 @@ def get_innovations_text(page: int, per_page: int = 3):
 
     return text
 
-def get_innovations_keyboard(page: int, per_page: int = 3):
+def get_innovations_keyboard(page: int, per_page: int = 1):
     total_pages = (len(INNOVATIONS_LIST) + per_page - 1) // per_page
 
     nav_buttons = []
@@ -741,12 +802,12 @@ async def demo_referral(callback: types.CallbackQuery, state: FSMContext):
     ref_link = f"https://t.me/{bot_info.username}?start=ref_{user_id}"
 
     text = (
-        "🤝 <b>Реферальная Программа (Виральность)</b>\n\n"
-        "<i>Как превратить клиентов в агентов по продажам? Дайте им инструмент.</i>\n\n"
-        "Отправьте вашу уникальную ссылку партнерам или знакомым предпринимателям. "
-        "Когда они запустят бота, система зафиксирует регистрацию, а вы получите <b>10 000 ₽</b> скидки на разработку вашей системы.\n\n"
-        f"🔗 <b>Ваша ссылка:</b>\n<code>{ref_link}</code>\n\n"
-        "<i>Нажмите на ссылку, чтобы скопировать.</i>"
+        "🤝 <b>Партнерская сеть (CPA-модель)</b>\n\n"
+        "<i>Как превратить лояльных клиентов в своих агентов по продажам? Настройте автоматический трекинг.</i>\n\n"
+        "Отправьте вашу уникальную ссылку партнерам по бизнесу. Если по вашей рекомендации заключается договор на внедрение системы, вы получаете <b>10% от суммы чека</b> (агентская комиссия).\n\n"
+        "Эти средства можно использовать как скидку на разработку бота или дополнительных модулей для вашего актива.\n\n"
+        f"🔗 <b>Ваша персональная ссылка:</b>\n<code>{ref_link}</code>\n\n"
+        "<i>(Нажмите на ссылку, чтобы скопировать)</i>"
     )
 
     await callback.message.edit_text(
