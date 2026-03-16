@@ -11,6 +11,7 @@ SHOWROOM_FILES = {
     "demo_referral": "AgACAgIAAyEFAATh7MR7AAPkabhaOSAkb6ij62sa2rwmrLSQqZsAAigcaxvbacBJOkW5CiIrYUQBAAMCAAN5AAM6BA",
     "niche_lawyer": "AgACAgIAAyEFAATh7MR7AAPjabhaOeR6VFO7NuMLFZowpz9aHGYAAiccaxvbacBJAd0KasPCuFIBAAMCAAN5AAM6BA",
     "main_menu": "CgACAgIAAxkBAAFE-3FpuGGET3r2QdRIicMe_6nvEUToJgACGZsAAttpwEksm1369MBBNToE",
+    "main_menu_photo": "AgACAgIAAyEFAATh7MR7AAPqabhrvg9au5NJ3Y24qjRT7WMmxcQAAhwcaxvbacBJwicMs3vVUFMBAAMCAAN5AAM6BA",
     "niche_dentist": "AgACAgIAAyEFAATh7MR7AAPiabhaOckZdclAbydRHyJygliL6OEAAiYcaxvbacBJ2w7ZeJzsQMABAAMCAAN5AAM6BA",
     "niche_auto": "AgACAgIAAyEFAATh7MR7AAPhabhaOM9dLAlDrodpMctPLn2n-CsAAiUcaxvbacBJkesUQtrZ4S8BAAMCAAN5AAM6BA",
     "niche_beauty": "AgACAgIAAyEFAATh7MR7AAPgabhaONJ3LieEI7-bJiSXCHj5ZykAAiQcaxvbacBJ6LrmmO7qab0BAAMCAAN5AAM6BA",
@@ -24,6 +25,7 @@ SHOWROOM_FILES = {
 
 SHOWROOM_MEDIA_TYPES = {
     "main_menu": "animation",
+    "main_menu_photo": "photo",
 }
 
 
