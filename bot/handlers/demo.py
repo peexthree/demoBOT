@@ -149,11 +149,12 @@ async def demo_leave_lead(callback: types.CallbackQuery, state: FSMContext):
     niche_name = data.get("niche_name", "Бизнес")
 
     # User feedback simulation
-    await callback.message.edit_caption(caption=
+    await update_showroom_media(
+        callback,
+        "demo_calculator",
         f"✅ <b>Заявка в {niche_name} успешно оформлена!</b>\n\n"
         "<i>(Вы как клиент получили это подтверждение)</i>\n\n"
-        "А теперь посмотрите, что в эту же секунду придет владельцу бизнеса в отдельный канал или личку 👇",
-        parse_mode="HTML"
+        "А теперь посмотрите, что в эту же секунду придет владельцу бизнеса в отдельный канал или личку 👇"
     )
 
     # Admin notification (Lead Card)
@@ -486,9 +487,7 @@ async def demo_calculator(callback: types.CallbackQuery, state: FSMContext):
         ans2 = step.split("result")[-1].strip("_")
         ans1 = data.get("calc_ans1", "неизвестно")
 
-        status_msg = await update_showroom_media(callback, "demo_vision", "🔄 <i>Передаю данные ИИ для индивидуального расчета...</i>",
-            parse_mode="HTML"
-        )
+        await update_showroom_media(callback, "demo_calculator", "🔄 <i>Передаю данные ИИ для индивидуального расчета...</i>")
 
         # Determine actual text answers based on keys
         text_ans1 = next((item[0] for item in niche_q['a1'] if item[1] == ans1), ans1)
