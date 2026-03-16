@@ -80,20 +80,25 @@ async def web_app_data_handler(message: Message):
         elif 'base' in parsed_data:
             base_id = parsed_data.get('base')
             module_ids = parsed_data.get('modules', [])
-            total_price = parsed_data.get('totalPrice', 0)
+
+            # Robust parsing of total_price
+            raw_price = parsed_data.get('totalPrice', 0)
+            try:
+                total_price = int(float(raw_price))
+            except (ValueError, TypeError):
+                total_price = 0
 
             base_title = BASE_PLANS.get(base_id, base_id)
             modules_titles = [MODULES.get(m, m) for m in module_ids]
 
             modules_text = "\n".join([f"- {m}" for m in modules_titles]) if modules_titles else "Нет"
 
+            formatted_price = f"{total_price:,} ₽".replace(",", " ")
+
             response_text = (
-                "🏗 <b>Запрос Архитектору сформирован!</b>\n\n"
-                f"📦 <b>База:</b> {base_title}\n"
-                f"🧩 <b>Дополнительные модули:</b>\n{modules_text}\n\n"
-                f"💰 <b>Предварительная оценка:</b> {total_price:,} ₽\n\n"
-                "Ваш запрос передан в разработку. Мы скоро свяжемся с вами!"
-            ).replace(',', ' ')
+                f"Запрос на предварительную смету получен. Итоговая сумма внедрения: {formatted_price}.\n"
+                "Архитектор проекта свяжется с вами для обсуждения деталей договора и сроков."
+            )
 
             # Сохранение лида (имитация)
             await save_lead_request({
@@ -122,8 +127,8 @@ async def web_app_data_handler(message: Message):
                         f"👤 Контакт: {user_link}\n\n"
                         f"📦 <b>База:</b> {base_title}\n"
                         f"🧩 <b>Дополнительные модули:</b>\n{modules_text}\n\n"
-                        f"💰 <b>Предварительная оценка:</b> {total_price:,} ₽"
-                    ).replace(',', ' ')
+                        f"💰 <b>Предварительная оценка:</b> {formatted_price}"
+                    )
 
                     await message.bot.send_message(admin_id, admin_text, parse_mode="HTML")
                 except Exception as e:
