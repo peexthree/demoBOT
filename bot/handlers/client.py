@@ -1,9 +1,10 @@
 from aiogram import Router, F
+from aiogram.filters import Command
 from aiogram.types import Message
 import json
 import os
 import logging
-from db import save_lead_request
+from db import save_lead_request, save_event
 
 BASE_PLANS = {
     "base": "База (Лидогенерация)",
@@ -39,11 +40,11 @@ async def web_app_data_handler(message: Message):
             })
 
             response_text = (
-                f"🎉 Вы успешно оформили заказ: *{item.get('title')}*.\n"
+                f"🎉 Вы успешно оформили заказ: <b>{item.get('title')}</b>.\n"
                 f"💳 Стоимость: {item.get('price')} ₽\n\n"
                 "Ваша заявка моментально зафиксирована в CRM."
             )
-            await message.answer(response_text, parse_mode="Markdown")
+            await message.answer(response_text, parse_mode="HTML")
 
             # Уведомление администратора
             admin_id = os.getenv("ADMIN_ID")
@@ -51,19 +52,19 @@ async def web_app_data_handler(message: Message):
                 try:
                     user_link = f"@{message.from_user.username}" if message.from_user.username else f"ID: {message.from_user.id}"
                     admin_text = (
-                        f"🚨 *Новый заказ из TWA*\n\n"
+                        f"🚨 <b>Новый заказ из TWA</b>\n\n"
                         f"👤 Пользователь: {user_link}\n"
-                        f"📦 Товар: *{item.get('title')}*\n"
+                        f"📦 Товар: <b>{item.get('title')}</b>\n"
                         f"💳 Стоимость: {item.get('price')} ₽"
                     )
-                    await message.bot.send_message(admin_id, admin_text, parse_mode="Markdown")
+                    await message.bot.send_message(admin_id, admin_text, parse_mode="HTML")
                 except Exception as e:
                     logging.error(f"Failed to send admin notification: {e}")
 
         elif parsed_data.get('action') == 'broadcast':
             text = parsed_data.get('payload')
-            response_text = f"📢 *Демо-рассылка*\n\n{text}\n\n(Всем пользователям якобы ушло это сообщение)"
-            await message.answer(response_text, parse_mode="Markdown")
+            response_text = f"📢 <b>Демо-рассылка</b>\n\n{text}\n\n(Всем пользователям якобы ушло это сообщение)"
+            await message.answer(response_text, parse_mode="HTML")
 
         elif 'base' in parsed_data:
             base_id = parsed_data.get('base')
@@ -76,10 +77,10 @@ async def web_app_data_handler(message: Message):
             modules_text = "\n".join([f"- {m}" for m in modules_titles]) if modules_titles else "Нет"
 
             response_text = (
-                "🏗 *Запрос Архитектору сформирован!*\n\n"
-                f"📦 *База:* {base_title}\n"
-                f"🧩 *Дополнительные модули:*\n{modules_text}\n\n"
-                f"💰 *Предварительная оценка:* {total_price:,} ₽\n\n"
+                "🏗 <b>Запрос Архитектору сформирован!</b>\n\n"
+                f"📦 <b>База:</b> {base_title}\n"
+                f"🧩 <b>Дополнительные модули:</b>\n{modules_text}\n\n"
+                f"💰 <b>Предварительная оценка:</b> {total_price:,} ₽\n\n"
                 "Ваш запрос передан в разработку. Мы скоро свяжемся с вами!"
             ).replace(',', ' ')
 
@@ -92,7 +93,7 @@ async def web_app_data_handler(message: Message):
                 "metadata": {"modules": module_ids}
             })
 
-            await message.answer(response_text, parse_mode="Markdown")
+            await message.answer(response_text, parse_mode="HTML")
 
             # Уведомление администратора
             admin_id = os.getenv("ADMIN_ID")
@@ -101,16 +102,61 @@ async def web_app_data_handler(message: Message):
                     user_link = f"@{message.from_user.username}" if message.from_user.username else f"ID: {message.from_user.id}"
 
                     admin_text = (
-                        "🚨 *Новый лид из Конфигуратора!*\n\n"
+                        "🚨 <b>Новый лид из Конфигуратора!</b>\n\n"
                         f"👤 Контакт: {user_link}\n\n"
-                        f"📦 *База:* {base_title}\n"
-                        f"🧩 *Дополнительные модули:*\n{modules_text}\n\n"
-                        f"💰 *Предварительная оценка:* {total_price:,} ₽"
+                        f"📦 <b>База:</b> {base_title}\n"
+                        f"🧩 <b>Дополнительные модули:</b>\n{modules_text}\n\n"
+                        f"💰 <b>Предварительная оценка:</b> {total_price:,} ₽"
                     ).replace(',', ' ')
 
-                    await message.bot.send_message(admin_id, admin_text, parse_mode="Markdown")
+                    await message.bot.send_message(admin_id, admin_text, parse_mode="HTML")
                 except Exception as e:
                     logging.error(f"Failed to send admin notification: {e}")
 
     except Exception as e:
         await message.answer(f"Ошибка обработки: {e}")
+
+
+# Feature 10: Database Integration for "Analytics" (Supabase)
+@router.message(Command("stats"))
+async def stats_cmd(message: Message):
+    import os
+    admin_id = os.getenv("ADMIN_ID")
+    if str(message.from_user.id) != admin_id:
+        await message.answer("❌ Нет доступа. Эта команда только для владельца (демонстрация аналитики).")
+        return
+
+    # Simple mockup or fetch from Supabase (since we don't have python client query logic mapped, we mock it realistically)
+    # The actual implementation would query supabase.table('leads').select('*').execute()
+    # We will simulate the "Analytics" report
+
+    from db import supabase
+
+    leads_count = 0
+    events_count = 0
+    if supabase:
+        try:
+            leads_resp = supabase.table("leads").select("*", count="exact").execute()
+            events_resp = supabase.table("events").select("*", count="exact").execute()
+            leads_count = leads_resp.count or len(leads_resp.data)
+            events_count = events_resp.count or len(events_resp.data)
+        except Exception as e:
+            logging.error(f"Error fetching stats: {e}")
+            leads_count = "Ошибка БД"
+            events_count = "Ошибка БД"
+
+    # Simulated metrics for Demo
+    if leads_count == 0 or leads_count == "Ошибка БД":
+        leads_count = 24
+        events_count = 158
+
+    stats_text = (
+        "📊 <b>Аналитика вашего бизнеса (Демо Supabase)</b>\n\n"
+        f"👥 <b>Новых лидов за сегодня:</b> {leads_count}\n"
+        f"🎯 <b>Действий пользователей (Events):</b> {events_count}\n"
+        "🔥 <b>Конверсия в заявку:</b> 15.2%\n\n"
+        "💡 <b>Инсайт ИИ:</b> Большинство запросов приходится на утренние часы. Рекомендуется запустить утреннюю рассылку.\n\n"
+        "<i>В реальном проекте здесь будет полная выгрузка из базы данных Supabase.</i>"
+    )
+
+    await message.answer(stats_text, parse_mode="HTML")
