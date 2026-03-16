@@ -588,46 +588,6 @@ async def demo_ai_models(callback: types.CallbackQuery):
 # Creative improvements showcase
 
 
-@router.callback_query(F.data == "demo_niche_back")
-async def demo_niche_back(callback: types.CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    niche = data.get("niche")
-    niche_name = data.get("niche_name", "Ваш бизнес")
-
-    if not niche:
-        # Fallback to main demo selection if no niche selected
-        await demo_client_path(callback, state)
-        return
-
-    niche_data = {
-        "lawyer": "оформлении документов и защите прав",
-        "dentist": "записи на прием и ценах на лечение",
-        "auto": "ремонте, запчастях и записи на диагностику",
-        "beauty": "услугах, мастерах и записи на процедуры"
-    }
-    spec = niche_data.get(niche, "ваших услугах")
-
-    await state.set_state(DemoStates.in_niche)
-    await callback.message.edit_text(
-        f"<i>(Вы вошли в роль клиента)</i>\n\n"
-        f"<b>Добро пожаловать в {niche_name}!</b>\n\n"
-        f"Я ваш виртуальный помощник. Я могу проконсультировать вас по {spec}, а также записать на удобное время.\n\n"
-        "Что вас интересует?",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🧠 Тест ИИ-консультанта (FAQ)", callback_data="demo_ai_ask")],
-            [InlineKeyboardButton(text="📷 Распознавание фото (Оценка)", callback_data="demo_vision")],
-            [InlineKeyboardButton(text="📄 Авто-обработка документов (PDF)", callback_data="demo_docs")],
-            [InlineKeyboardButton(text="🎤 Голосовой прием заявок", callback_data="demo_voice")],
-            [InlineKeyboardButton(text="🧮 Интерактивный расчет стоимости", callback_data="demo_calculator")],
-            [InlineKeyboardButton(text="🎁 Система лояльности (Промокоды)", callback_data="demo_promo")],
-            [InlineKeyboardButton(text="🔙 Сменить нишу", callback_data="demo_client_path")]
-        ]),
-        parse_mode="HTML"
-    )
-    await callback.answer()
-
-
-
 @router.callback_query(F.data == "demo_innovations")
 async def demo_innovations(callback: types.CallbackQuery):
     text = (

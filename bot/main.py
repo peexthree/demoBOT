@@ -2,17 +2,18 @@ import asyncio
 import logging
 import os
 import sys
+import traceback
 
 # Добавляем корневую папку bot в sys.path, чтобы python находил модули
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from aiogram.types import ErrorEvent
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 from aiohttp import web
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from dotenv import load_dotenv
-
 from middlewares import SmartStalkerMiddleware
 from handlers import base, client, admin, demo
 
@@ -22,6 +23,34 @@ logging.basicConfig(level=logging.INFO)
 
 async def health_check(request):
     return web.Response(text="OK")
+
+# Global error handler
+
+async def global_error_handler(event: ErrorEvent):
+    logging.error(f"Critical error handled globally: {event.exception}")
+    logging.error(traceback.format_exc())
+
+    # Notify user if possible
+    if event.update.message:
+        try:
+            await event.update.message.answer("⚠️ <b>Произошла системная ошибка.</b>\n\nМои разработчики уже уведомлены и чинят меня. Пожалуйста, попробуйте позже.", parse_mode="HTML")
+        except Exception:
+            pass
+    elif event.update.callback_query:
+        try:
+             await event.update.callback_query.answer("⚠️ Системная ошибка. Мы уже работаем над этим.", show_alert=True)
+        except Exception:
+             pass
+
+    # Notify admin
+    admin_id = os.getenv("ADMIN_ID")
+    if admin_id and event.update.bot:
+        try:
+            error_text = f"🚨 <b>Критическая Ошибка БОТА!</b>\n\n"
+            error_text += f"<pre>Exception: {str(event.exception)[:1000]}</pre>"
+            await event.update.bot.send_message(admin_id, error_text, parse_mode="HTML")
+        except Exception:
+            pass
 
 def main():
     bot_token = os.getenv("BOT_TOKEN")
@@ -119,39 +148,8 @@ def main():
 
         app.on_shutdown.append(on_shutdown_polling)
 
-
         logging.info(f"Health check server running on 0.0.0.0:{port}")
         web.run_app(app, host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
     main()
-
-# Global error handler
-from aiogram.types import ErrorEvent
-import traceback
-
-async def global_error_handler(event: ErrorEvent):
-    logging.error(f"Critical error handled globally: {event.exception}")
-    logging.error(traceback.format_exc())
-
-    # Notify user if possible
-    if event.update.message:
-        try:
-            await event.update.message.answer("⚠️ <b>Произошла системная ошибка.</b>\n\nМои разработчики уже уведомлены и чинят меня. Пожалуйста, попробуйте позже.", parse_mode="HTML")
-        except:
-            pass
-    elif event.update.callback_query:
-        try:
-             await event.update.callback_query.answer("⚠️ Системная ошибка. Мы уже работаем над этим.", show_alert=True)
-        except:
-             pass
-
-    # Notify admin
-    admin_id = os.getenv("ADMIN_ID")
-    if admin_id and event.update.bot:
-        try:
-            error_text = f"🚨 <b>Критическая Ошибка БОТА!</b>\n\n"
-            error_text += f"<pre>Exception: {str(event.exception)[:1000]}</pre>"
-            await event.update.bot.send_message(admin_id, error_text, parse_mode="HTML")
-        except:
-            pass
