@@ -45,7 +45,7 @@ async def start_cmd(message: types.Message, command: CommandObject, state: FSMCo
                  "Что вас интересует?",
                  reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                      [InlineKeyboardButton(text="Записаться на чистку (Демо)", callback_data="demo_stoma_booking")],
-                     [InlineKeyboardButton(text="🔙 В главное меню системы", callback_data="main_menu")]
+                     [InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]
                  ]),
                  parse_mode="HTML"
              )
@@ -70,8 +70,14 @@ async def start_cmd(message: types.Message, command: CommandObject, state: FSMCo
 
     if not user_exists:
         welcome_text = (
-            f"🌆 <b>{greeting}, {message.from_user.first_name}!</b>\n\n"
-            "<b>Eidos System</b> — цифровой шоурум Архитектора систем автоматизации.\n\n"
+            "<b>СТАТУС: СИСТЕМА АКТИВИРОВАНА</b>\n\n"
+            "Добро пожаловать в технологический шоурум. Это интерактивный прототип вашей будущей цифровой экосистемы.\n\n"
+            "Почему это не «просто бот»:\n\n"
+            "▪️ <b>100% Владение:</b> Код принадлежит вам. Никакой абонентской платы разработчику.\n"
+            "▪️ <b>Масштабируемость:</b> Система на чистом Python готова к нагрузкам в тысячи заказов.\n"
+            "▪️ <b>Интеллект:</b> Возможность интеграции ИИ-менеджеров (Gemini/GPT) для общения с вашими клиентами.\n\n"
+            "<b>Протестируйте ключевые узлы инфраструктуры:</b>\n\n"
+            f"🌆 <b>{greeting}, {message.from_user.first_name}!</b>\n"
             "Для того, чтобы показать вам наиболее релевантные возможности, подскажите, <b>в какой сфере вы работаете?</b>"
         )
 
@@ -85,13 +91,21 @@ async def start_cmd(message: types.Message, command: CommandObject, state: FSMCo
     else:
         # If user exists, skip the questionnaire and show the main menu
         welcome_text = (
-            f"🌆 <b>С возвращением, {message.from_user.first_name}!</b>\n\n"
-            "<b>Eidos System</b> — цифровой шоурум Архитектора систем автоматизации.\n\n"
+            "<b>СТАТУС: СИСТЕМА АКТИВИРОВАНА</b>\n\n"
+            "Добро пожаловать в технологический шоурум. Это интерактивный прототип вашей будущей цифровой экосистемы.\n\n"
+            "Почему это не «просто бот»:\n\n"
+            "▪️ <b>100% Владение:</b> Код принадлежит вам. Никакой абонентской платы разработчику.\n"
+            "▪️ <b>Масштабируемость:</b> Система на чистом Python готова к нагрузкам в тысячи заказов.\n"
+            "▪️ <b>Интеллект:</b> Возможность интеграции ИИ-менеджеров (Gemini/GPT) для общения с вашими клиентами.\n\n"
+            "<b>Протестируйте ключевые узлы инфраструктуры:</b>\n\n"
+            f"🌆 <b>С возвращением, {message.from_user.first_name}!</b>\n"
             "Выберите раздел для изучения:"
         )
         markup = get_main_menu_keyboard()
 
     # If the user has a profile photo or we just send an HTML message (simulating a banner with rich text)
+    # First send the persistent keyboard, then the inline markup
+    await message.answer("Инициализация интерфейса...", reply_markup=get_twa_reply_keyboard())
     await message.answer(welcome_text, reply_markup=markup, parse_mode="HTML")
 
 @router.callback_query(F.data.startswith("onboard_"))

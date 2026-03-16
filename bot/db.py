@@ -59,11 +59,11 @@ async def save_user(user_id: int, username: str, first_name: str, last_name: str
             # Check if user exists, if not insert
             existing = supabase.table("users").select("*").eq("id", user_id).execute()
             if not existing.data:
+                full_name = f"{first_name} {last_name}".strip()
                 supabase.table("users").insert({
                     "id": user_id,
                     "username": username,
-                    "first_name": first_name,
-                    "last_name": last_name
+                    "full_name": full_name
                 }).execute()
                 return False # New user
             return True # User already exists
