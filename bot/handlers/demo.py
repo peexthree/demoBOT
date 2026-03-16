@@ -1,7 +1,7 @@
 import os
 import asyncio
 from aiogram import Router, F, types
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 
@@ -25,10 +25,19 @@ def get_main_menu_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🚀 [ПОСМОТРЕТЬ РЕШЕНИЯ]", callback_data="demo_portfolio")],
         [InlineKeyboardButton(text="⚙️ [ДЕМО-РЕЖИМ: АВТОМАТИЗАЦИЯ]", callback_data="demo_client_path")],
-        [InlineKeyboardButton(text="📊 [ЛИЧНЫЙ КАБИНЕТ И АДМИН-ПАНЕЛЬ]", web_app=types.WebAppInfo(url=os.getenv("WEBAPP_URL", "https://lid-flow.vercel.app/twa")))],
         [InlineKeyboardButton(text="📑 [ИНВЕСТИЦИОННЫЙ ЧЕК-ЛИСТ]", callback_data="demo_pricing")],
         [InlineKeyboardButton(text="💬 [ОБСУДИТЬ ПРОЕКТ]", url=f"tg://user?id={os.getenv('ADMIN_ID', '0')}")]
     ])
+
+def get_twa_reply_keyboard():
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="📊 ОТКРЫТЬ КАЛЬКУЛЯТОР", web_app=types.WebAppInfo(url=os.getenv("WEBAPP_URL", "https://lid-flow.vercel.app/twa")))],
+            [KeyboardButton(text="Скрыть меню")]
+        ],
+        resize_keyboard=True,
+        is_persistent=False
+    )
 
 @router.callback_query(F.data == "main_menu")
 async def main_menu_handler(callback: types.CallbackQuery):
@@ -39,7 +48,15 @@ async def main_menu_handler(callback: types.CallbackQuery):
         reply_markup=get_main_menu_keyboard(),
         parse_mode="Markdown"
     )
+    await callback.message.answer(
+        "Для расчета стоимости (Калькулятор Архитектора) используйте кнопку в меню ниже:",
+        reply_markup=get_twa_reply_keyboard()
+    )
     await callback.answer()
+
+@router.message(F.text == "Скрыть меню")
+async def hide_keyboard_handler(message: types.Message):
+    await message.answer("Меню скрыто. Чтобы вернуть его, перезапустите бота командой /start.", reply_markup=ReplyKeyboardRemove())
 
 @router.callback_query(F.data == "demo_portfolio")
 async def demo_portfolio(callback: types.CallbackQuery):
