@@ -44,6 +44,8 @@ def main():
     dp.include_router(admin.router)
     dp.include_router(demo.router)
 
+    dp.errors.register(global_error_handler)
+
     logging.info("Starting bot...")
 
     app = web.Application()
@@ -123,3 +125,33 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# Global error handler
+from aiogram.types import ErrorEvent
+import traceback
+
+async def global_error_handler(event: ErrorEvent):
+    logging.error(f"Critical error handled globally: {event.exception}")
+    logging.error(traceback.format_exc())
+
+    # Notify user if possible
+    if event.update.message:
+        try:
+            await event.update.message.answer("⚠️ <b>Произошла системная ошибка.</b>\n\nМои разработчики уже уведомлены и чинят меня. Пожалуйста, попробуйте позже.", parse_mode="HTML")
+        except:
+            pass
+    elif event.update.callback_query:
+        try:
+             await event.update.callback_query.answer("⚠️ Системная ошибка. Мы уже работаем над этим.", show_alert=True)
+        except:
+             pass
+
+    # Notify admin
+    admin_id = os.getenv("ADMIN_ID")
+    if admin_id and event.update.bot:
+        try:
+            error_text = f"🚨 <b>Критическая Ошибка БОТА!</b>\n\n"
+            error_text += f"<pre>Exception: {str(event.exception)[:1000]}</pre>"
+            await event.update.bot.send_message(admin_id, error_text, parse_mode="HTML")
+        except:
+            pass

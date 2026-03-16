@@ -1,15 +1,33 @@
 import os
 import asyncio
-from aiogram import Router, types
+from aiogram import Router, types, F
 from aiogram.filters import CommandStart, CommandObject
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.fsm.context import FSMContext
+from bot.states import DemoStates
+from bot.db import save_event
 
-from handlers.demo import get_main_menu_keyboard, get_twa_reply_keyboard
+from bot.handlers.demo import get_main_menu_keyboard, get_twa_reply_keyboard
 
 router = Router()
 
 @router.message(CommandStart())
-async def start_cmd(message: types.Message, command: CommandObject):
+async def start_cmd(message: types.Message, command: CommandObject, state: FSMContext):
+    # User analytics
+    user_exists = False
+    try:
+        from bot.db import save_user
+        user_exists = await save_user(
+            message.from_user.id,
+            message.from_user.username or "",
+            message.from_user.first_name or "",
+            message.from_user.last_name or ""
+        )
+    except Exception as e:
+        print(f"User analytics error: {e}")
+
+    await save_event({"user_id": message.from_user.id, "action": "start_cmd"})
+
     # Deep Linking
     if command.args:
         args = command.args
@@ -32,9 +50,15 @@ async def start_cmd(message: types.Message, command: CommandObject):
                  parse_mode="HTML"
              )
              return
+        elif args.startswith("ref_"):
+            ref_id = args.split("_")[1]
+            await save_event({"user_id": message.from_user.id, "action": "referral_join", "metadata": {"ref_id": ref_id}})
+            await message.answer(
+                f"🎉 <b>Добро пожаловать по приглашению!</b>\n\nВам доступен специальный бонус при заказе системы.",
+                parse_mode="HTML"
+            )
 
-    # Обычный старт
-    # Feature 9: Rich Media Greeting
+    # Обычный старт - Многоуровневый онбординг (Прогрев)
     from datetime import datetime
     current_hour = datetime.now().hour
     if 5 <= current_hour < 12:
@@ -44,18 +68,51 @@ async def start_cmd(message: types.Message, command: CommandObject):
     else:
         greeting = "Добрый вечер"
 
-    welcome_text = (
-        f"🌆 <b>{greeting}, {message.from_user.first_name}!</b>\n\n"
-        "<b>Eidos System</b> — цифровой шоурум Архитектора систем автоматизации.\n\n"
-        "💡 <i>Я не просто бот, я — демонстрация того, как ваш бизнес может работать 24/7 без участия человека.</i>\n\n"
-        "<b>Мои возможности:</b>\n"
-        "🔹 Генерация лидов и сбор заявок\n"
-        "🔹 Умный ИИ-ассистент с пониманием голоса и фото\n"
-        "🔹 Интеграция с CRM и аналитикой\n\n"
-        "👇 <b>Выберите раздел для погружения:</b>"
-    )
+    if not user_exists:
+        welcome_text = (
+            f"🌆 <b>{greeting}, {message.from_user.first_name}!</b>\n\n"
+            "<b>Eidos System</b> — цифровой шоурум Архитектора систем автоматизации.\n\n"
+            "Для того, чтобы показать вам наиболее релевантные возможности, подскажите, <b>в какой сфере вы работаете?</b>"
+        )
 
-    markup = get_main_menu_keyboard()
+        markup = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="💼 Услуги (Юристы, Консалтинг)", callback_data="onboard_lawyer")],
+            [InlineKeyboardButton(text="🏥 Медицина и Стоматология", callback_data="onboard_dentist")],
+            [InlineKeyboardButton(text="🚗 Автобизнес (СТО, Продажи)", callback_data="onboard_auto")],
+            [InlineKeyboardButton(text="💇‍♀️ Бьюти-сфера (Салоны)", callback_data="onboard_beauty")],
+            [InlineKeyboardButton(text="🏢 Другое (Показать всё меню)", callback_data="main_menu")]
+        ])
+    else:
+        # If user exists, skip the questionnaire and show the main menu
+        welcome_text = (
+            f"🌆 <b>С возвращением, {message.from_user.first_name}!</b>\n\n"
+            "<b>Eidos System</b> — цифровой шоурум Архитектора систем автоматизации.\n\n"
+            "Выберите раздел для изучения:"
+        )
+        markup = get_main_menu_keyboard()
 
     # If the user has a profile photo or we just send an HTML message (simulating a banner with rich text)
     await message.answer(welcome_text, reply_markup=markup, parse_mode="HTML")
+
+@router.callback_query(F.data.startswith("onboard_"))
+async def onboard_niche(callback: types.CallbackQuery, state: FSMContext):
+    niche = callback.data.split("_")[1]
+
+    await save_event({"user_id": callback.from_user.id, "action": "onboarding_niche_selected", "metadata": {"niche": niche}})
+
+    from bot.handlers.demo import niche_selected
+
+    # We need to rewrite the callback data to match demo format
+    class FakeCallback:
+        def __init__(self, data, message, from_user, bot):
+            self.data = data
+            self.message = message
+            self.from_user = from_user
+            self.bot = bot
+
+        async def answer(self, *args, **kwargs):
+            pass
+
+    fake_cb = FakeCallback(f"niche_{niche}", callback.message, callback.from_user, callback.bot)
+    await niche_selected(fake_cb, state)
+    await callback.answer()

@@ -5,16 +5,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeybo
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 
-try:
-    import google.generativeai as genai
-    API_KEY = os.getenv("API_KEY")
-    if API_KEY:
-        genai.configure(api_key=API_KEY)
-        model = genai.GenerativeModel('gemini-2.5-flash')
-    else:
-        model = None
-except ImportError:
-    model = None
+from bot.ai_utils import generate_with_fallback, API_KEY
 
 router = Router()
 
@@ -28,13 +19,14 @@ def get_main_menu_keyboard():
         [InlineKeyboardButton(text="⚙️ [ДЕМО-РЕЖИМ: АВТОМАТИЗАЦИЯ]", callback_data="demo_client_path")],
         [InlineKeyboardButton(text="📑 [ИНВЕСТИЦИОННЫЙ ЧЕК-ЛИСТ]", callback_data="demo_pricing")],
         [InlineKeyboardButton(text="💬 [ОБСУДИТЬ ПРОЕКТ]", url=f"tg://user?id={os.getenv('ADMIN_ID', '0')}")],
-        [InlineKeyboardButton(text="🔄 Меню (/start)", callback_data="main_menu")]
+        [InlineKeyboardButton(text="🤝 [ПАРТНЕРСКАЯ ПРОГРАММА]", callback_data="demo_referral")]
     ])
 
 def get_twa_reply_keyboard():
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="📊 ОТКРЫТЬ КАЛЬКУЛЯТОР", web_app=types.WebAppInfo(url=os.getenv("WEBAPP_URL", "https://lid-flow.vercel.app/twa")))],
+            [KeyboardButton(text="Вызвать меню")],
             [KeyboardButton(text="Скрыть меню")]
         ],
         resize_keyboard=True,
@@ -115,6 +107,7 @@ async def niche_selected(callback: types.CallbackQuery, state: FSMContext):
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🧠 Задать вопрос ИИ (FAQ & Консультация)", callback_data="demo_ai_ask")],
             [InlineKeyboardButton(text="📷 Анализ по фото (Vision ИИ)", callback_data="demo_vision")],
+            [InlineKeyboardButton(text="📄 Парсинг смет (Отправьте PDF)", callback_data="demo_docs")],
             [InlineKeyboardButton(text="🎤 Записать аудио (Голосовой ИИ)", callback_data="demo_voice")],
             [InlineKeyboardButton(text="🧮 Калькулятор стоимости", callback_data="demo_calculator")],
             [InlineKeyboardButton(text="🎁 Получить промокод", callback_data="demo_promo")],
@@ -147,14 +140,14 @@ async def handle_ai_question(message: types.Message, state: FSMContext):
     status_msg = await message.answer(f"🔄 <i>{niche_name}:</i> Анализирую запрос...", parse_mode="HTML")
     await message.bot.send_chat_action(chat_id=message.chat.id, action="typing")
 
-    if model:
+    if API_KEY:
         try:
              prompt = f"Действуй профессионально в роли ассистента компании {niche_name}. Ответь клиенту на вопрос: {message.text}. Если это запрос на запись или покупку - соглашайся и проси оставить контакт. История: {history}. Ответ должен быть кратким и по делу, не более 50-100 слов. ОТВЕЧАЙ ПРОСТЫМ ТЕКСТОМ БЕЗ MARKDOWN (без звездочек)."
-             response = await model.generate_content_async(prompt)
-             answer_text = response.text
+             answer_text = await generate_with_fallback(prompt)
 
              # Save history
-             history += f" User: {message.text}. You: {answer_text}."
+             import html
+             history += f" User: {html.escape(message.text)}. You: {html.escape(answer_text)}."
              await state.update_data(history=history[-1000:])
         except Exception as e:
              answer_text = "❌ Ошибка при обращении к ИИ-серверу: " + str(e)
@@ -308,7 +301,7 @@ async def handle_photo(message: types.Message, state: FSMContext):
     status_msg = await message.answer("🔄 <i>Загружаю зрение терминатора...</i>", parse_mode="HTML")
     await message.bot.send_chat_action(chat_id=message.chat.id, action="typing")
 
-    if model:
+    if API_KEY:
         try:
             import io
             photo = message.photo[-1]
@@ -325,8 +318,7 @@ async def handle_photo(message: types.Message, state: FSMContext):
                 }
             ]
 
-            response = await model.generate_content_async([prompt, image_parts[0]])
-            answer_text = response.text
+            answer_text = await generate_with_fallback(prompt, image_parts=[image_parts[0]])
         except Exception as e:
             answer_text = "❌ Ошибка при анализе изображения ИИ: " + str(e)
     else:
@@ -359,7 +351,7 @@ async def handle_voice(message: types.Message, state: FSMContext):
     status_msg = await message.answer("🔄 <i>Перевожу голос в текст и анализирую...</i>", parse_mode="HTML")
     await message.bot.send_chat_action(chat_id=message.chat.id, action="record_voice")
 
-    if model:
+    if API_KEY:
         try:
             import io
             import tempfile
@@ -376,12 +368,12 @@ async def handle_voice(message: types.Message, state: FSMContext):
 
             try:
                 # Use Gemini file API
+                import google.generativeai as genai
                 uploaded_file = genai.upload_file(tmp_path)
 
                 prompt = f"Ты экспертный ассистент компании {niche_name}. Прослушай аудиосообщение клиента. Дай четкий, полезный ответ, подходящий для ниши (согласись на запись или проконсультируй по услугам). Ответ должен быть кратким и по делу, не более 50-100 слов. ОТВЕЧАЙ ПРОСТЫМ ТЕКСТОМ БЕЗ MARKDOWN."
 
-                response = await model.generate_content_async([prompt, uploaded_file])
-                answer_text = response.text
+                answer_text = await generate_with_fallback(prompt, file_part=uploaded_file)
 
                 # Cleanup the file from Gemini
                 uploaded_file.delete()
@@ -408,7 +400,7 @@ async def demo_calculator(callback: types.CallbackQuery, state: FSMContext):
     niche = data.get("niche", "default")
     niche_name = data.get("niche_name", "Ваш бизнес")
 
-    if callback.data == "demo_calc":
+    if callback.data == "demo_calculator" or callback.data == "demo_calc":
         step = "start"
     else:
         step = callback.data.replace("demo_calc_", "")
@@ -481,11 +473,10 @@ async def demo_calculator(callback: types.CallbackQuery, state: FSMContext):
         text_ans1 = next((item[0] for item in niche_q['a1'] if item[1] == ans1), ans1)
         text_ans2 = next((item[0] for item in niche_q['a2'] if item[1] == ans2), ans2)
 
-        if model:
+        if API_KEY:
              try:
                  prompt = f"Ты ИИ-ассистент компании {niche_name}. Клиент прошел квиз. Вопрос 1: {niche_q['q1']} Ответ: {text_ans1}. Вопрос 2: {niche_q['q2']} Ответ: {text_ans2}. Сделай примерный расчет стоимости и времени, и предложи записаться/оставить заявку. Напиши 1 короткий, привлекательный абзац. ОТВЕЧАЙ ПРОСТЫМ ТЕКСТОМ БЕЗ MARKDOWN."
-                 response = await model.generate_content_async(prompt)
-                 ai_text = response.text
+                 ai_text = await generate_with_fallback(prompt)
              except Exception as e:
                  ai_text = f"Ваша предварительная стоимость: от 15 000 до 35 000 рублей. ({str(e)})"
         else:
@@ -559,6 +550,7 @@ async def demo_niche_back(callback: types.CallbackQuery, state: FSMContext):
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🧠 Задать вопрос ИИ (FAQ & Консультация)", callback_data="demo_ai_ask")],
             [InlineKeyboardButton(text="📷 Анализ по фото (Vision ИИ)", callback_data="demo_vision")],
+            [InlineKeyboardButton(text="📄 Парсинг смет (Отправьте PDF)", callback_data="demo_docs")],
             [InlineKeyboardButton(text="🎤 Записать аудио (Голосовой ИИ)", callback_data="demo_voice")],
             [InlineKeyboardButton(text="🧮 Калькулятор стоимости", callback_data="demo_calculator")],
             [InlineKeyboardButton(text="🎁 Получить промокод", callback_data="demo_promo")],
@@ -599,6 +591,7 @@ async def demo_niche_back(callback: types.CallbackQuery, state: FSMContext):
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🧠 Задать вопрос ИИ (FAQ & Консультация)", callback_data="demo_ai_ask")],
             [InlineKeyboardButton(text="📷 Анализ по фото (Vision ИИ)", callback_data="demo_vision")],
+            [InlineKeyboardButton(text="📄 Парсинг смет (Отправьте PDF)", callback_data="demo_docs")],
             [InlineKeyboardButton(text="🎤 Записать аудио (Голосовой ИИ)", callback_data="demo_voice")],
             [InlineKeyboardButton(text="🧮 Калькулятор стоимости", callback_data="demo_calculator")],
             [InlineKeyboardButton(text="🎁 Получить промокод", callback_data="demo_promo")],
@@ -646,6 +639,106 @@ async def demo_innovations(callback: types.CallbackQuery):
         "▪️ <b>Зачем:</b> Бесшовный клиентский опыт. Вы всегда на связи в привычной для клиента среде, что повышает лояльность и ускоряет решение сложных вопросов.\n\n"
         "💡 <i>Любая из этих функций может стать киллер-фичей вашего проекта!</i>"
     )
+    await callback.message.edit_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню (/start)", callback_data="main_menu")]]),
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+@router.message(F.text == "Вызвать меню")
+async def show_menu_handler(message: types.Message):
+    # Instead of deleting and starting over, just send the main menu
+    from bot.handlers.demo import get_main_menu_keyboard
+
+    welcome_text = (
+        "🤖 <b>Eidos System</b> — цифровой шоурум Архитектора.\n\n"
+        "Вы находитесь в демо-версии премиальной системы автоматизации бизнеса.\n\n"
+        "Выберите раздел для изучения:"
+    )
+
+    markup = get_main_menu_keyboard()
+    await message.answer(welcome_text, reply_markup=markup, parse_mode="HTML")
+
+# Feature 2.5: Document Analysis (AI Parsing)
+@router.message(DemoStates.in_niche, F.document)
+async def handle_document(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    niche_name = data.get("niche_name", "Бизнес Архитектор")
+
+    doc = message.document
+
+    # We only process PDFs or Excel for demo
+    if not (doc.file_name.endswith('.pdf') or doc.file_name.endswith('.xlsx') or doc.file_name.endswith('.xls')):
+        await message.answer("❌ <b>Демо:</b> Пожалуйста, отправьте PDF документ или Excel файл для анализа (смета, спецификация, прайс).", parse_mode="HTML")
+        return
+
+    status_msg = await message.answer(
+        "🔄 <i>Запускаю умный парсинг документов...</i>\n\n"
+        "<code>[||||||||  ] 30% - Извлечение таблиц</code>",
+        parse_mode="HTML"
+    )
+    await message.bot.send_chat_action(chat_id=message.chat.id, action="typing")
+    await asyncio.sleep(1.5)
+
+    await status_msg.edit_text(
+        "🔄 <i>Запускаю умный парсинг документов...</i>\n\n"
+        "<code>[||||||||||||||] 80% - Сопоставление с базой CRM</code>",
+        parse_mode="HTML"
+    )
+    await asyncio.sleep(1.5)
+
+    import random
+    total = random.randint(15000, 150000)
+
+    ai_text = (
+        f"✅ <b>Смета успешно обработана!</b>\n\n"
+        f"<b>ИИ:</b> Я проанализировал файл <i>{doc.file_name}</i>. В нём найдено 14 позиций. \n"
+        f"Все они сопоставлены с вашей номенклатурой ({niche_name}).\n\n"
+        f"💰 <b>Предварительная сумма:</b> {total:,} ₽\n\n"
+        f"<i>В реальной системе здесь будет сгенерирован счет на оплату или коммерческое предложение в формате PDF, готовое к отправке клиенту.</i>"
+    ).replace(',', ' ')
+
+    await status_msg.edit_text(
+        ai_text,
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🎯 Оформить заявку", callback_data="demo_leave_lead")],
+            [InlineKeyboardButton(text="🔙 В меню ниши", callback_data="demo_niche_back")]
+        ]),
+        parse_mode="HTML"
+    )
+
+@router.callback_query(F.data == "demo_docs")
+async def demo_docs(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.edit_text(
+        "📄 <b>Умный Парсинг Смет и Документов</b>
+
+"
+        "Отправьте мне любой PDF, Excel файл или скан счета. ИИ моментально прочитает его и сопоставит с прайсом CRM.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад / Отменить", callback_data="demo_niche_back")]]),
+        parse_mode="HTML"
+    )
+    # We stay in DemoStates.in_niche, the document handler listens there
+    await callback.answer()
+
+# Feature 12: Referral System
+@router.callback_query(F.data == "demo_referral")
+async def demo_referral(callback: types.CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
+
+    # We create a deep link pointing back to the bot
+    bot_info = await callback.bot.get_me()
+    ref_link = f"https://t.me/{bot_info.username}?start=ref_{user_id}"
+
+    text = (
+        "🤝 <b>Реферальная Программа (Виральность)</b>\n\n"
+        "<i>Как превратить клиентов в агентов по продажам? Дайте им инструмент.</i>\n\n"
+        "Отправьте вашу уникальную ссылку партнерам или знакомым предпринимателям. "
+        "Когда они запустят бота, система зафиксирует регистрацию, а вы получите <b>10 000 ₽</b> скидки на разработку вашей системы.\n\n"
+        f"🔗 <b>Ваша ссылка:</b>\n<code>{ref_link}</code>\n\n"
+        "<i>Нажмите на ссылку, чтобы скопировать.</i>"
+    )
+
     await callback.message.edit_text(
         text,
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню (/start)", callback_data="main_menu")]]),
