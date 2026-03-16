@@ -16,9 +16,7 @@ class AIState(StatesGroup):
 def get_main_menu_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="⚙️ ТЕСТ-ДРАЙВ: ИИ В ВАШЕЙ НИШЕ", callback_data="demo_client_path")],
-        [InlineKeyboardButton(text="🚀 КЕЙСЫ И РЕШЕНИЯ ДЛЯ БИЗНЕСА", callback_data="demo_portfolio")],
         [InlineKeyboardButton(text="🌟 ТОЧКИ РОСТА И ИННОВАЦИИ", callback_data="demo_innovations")],
-        [InlineKeyboardButton(text="🧠 МОДЕЛИ ИИ ДЛЯ БИЗНЕСА", callback_data="demo_ai_models")],
         [InlineKeyboardButton(text="📑 КОНФИГУРАТОР СИСТЕМЫ (Web App)", web_app=types.WebAppInfo(url=os.getenv("WEBAPP_URL", "https://lid-flow.vercel.app/twa")))],
         [InlineKeyboardButton(text="📑 ОЦЕНКА СТОИМОСТИ ВНЕДРЕНИЯ", callback_data="demo_pricing")],
         [InlineKeyboardButton(text="🤝 ПАРТНЕРСКАЯ ПРОГРАММА", callback_data="demo_referral")],
@@ -50,21 +48,6 @@ async def main_menu_handler(callback: types.CallbackQuery):
 async def hide_keyboard_handler(message: types.Message):
     await message.answer("Меню скрыто. Чтобы вернуть его, перезапустите бота командой /start.", reply_markup=ReplyKeyboardRemove())
 
-@router.callback_query(F.data == "demo_portfolio")
-async def demo_portfolio(callback: types.CallbackQuery):
-    await callback.message.edit_text(
-        "🚀 <b>Наши Решения и Кейсы</b>\n\n"
-        "Мы внедряем автономные цифровые активы, которые окупаются за 2-3 месяца.\n\n"
-        "🔹 <b>Lizing-Phi</b> — Автоматизация скоринга и заявок.\n"
-        "   <i>Результат:</i> Снизили нагрузку на админа на 70%.\n\n"
-        "🔹 <b>FermerHub</b> — Платформа-маркетплейс в Telegram.\n"
-        "   <i>Результат:</i> Увеличение конверсии на 40% за счет отсутствия регистраций.\n\n"
-        "🔹 <b>Акуленок</b> — Автоворонка и ИИ-ассистент.\n"
-        "   <i>Результат:</i> Круглосуточная обработка лидов, рост LTV.\n",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]]),
-        parse_mode="HTML"
-    )
-    await callback.answer()
 
 # Feature 1: Dynamic Niche Selection
 from bot.states import DemoStates
@@ -563,27 +546,6 @@ async def demo_niche_back(callback: types.CallbackQuery, state: FSMContext):
 
 
 
-@router.callback_query(F.data == "demo_ai_models")
-async def demo_ai_models(callback: types.CallbackQuery):
-    text = (
-        "🧠 <b>Модели ИИ для вашего бизнеса</b>\n\n"
-        "<i>Мы интегрируем передовые генеративные модели для решения корпоративных задач:</i>\n\n"
-        "🔹 <b>Gemini 3.1 Pro</b>\n"
-        "Идеально для сложной аналитики, стратегического планирования и создания автономных AI-агентов. Глубокое понимание бизнес-процессов.\n\n"
-        "🔹 <b>Gemini 3 Flash & 3.1 Flash-Lite</b>\n"
-        "Сверхбыстрая обработка массовых обращений, парсинг данных и маршрутизация клиентов. Максимальная скорость при низких затратах.\n\n"
-        "🔹 <b>Vision (Анализ изображений)</b>\n"
-        "Автоматическая оценка ущерба, распознавание товаров на полке, чтение схем и графиков без участия человека.\n\n"
-        "🔹 <b>Голосовые ИИ-ассистенты</b>\n"
-        "Прием заявок голосом, транскрибация совещаний и автоматическое заполнение CRM на основе разговора.\n\n"
-        "<i>Все модели работают в единой связке (бесшовный fallback) для обеспечения 100% отказоустойчивости и минимизации расходов на API.</i>"
-    )
-    await callback.message.edit_text(
-        text,
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]]),
-        parse_mode="HTML"
-    )
-    await callback.answer()
 
 # Creative improvements showcase
 
