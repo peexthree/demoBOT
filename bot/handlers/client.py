@@ -1,6 +1,8 @@
 from aiogram import Router, F
 from aiogram.types import Message
 import json
+import os
+import logging
 from db import save_lead_request
 
 BASE_PLANS = {
@@ -43,6 +45,21 @@ async def web_app_data_handler(message: Message):
             )
             await message.answer(response_text, parse_mode="Markdown")
 
+            # Уведомление администратора
+            admin_id = os.getenv("ADMIN_ID")
+            if admin_id:
+                try:
+                    user_link = f"@{message.from_user.username}" if message.from_user.username else f"ID: {message.from_user.id}"
+                    admin_text = (
+                        f"🚨 *Новый заказ из TWA*\n\n"
+                        f"👤 Пользователь: {user_link}\n"
+                        f"📦 Товар: *{item.get('title')}*\n"
+                        f"💳 Стоимость: {item.get('price')} ₽"
+                    )
+                    await message.bot.send_message(admin_id, admin_text, parse_mode="Markdown")
+                except Exception as e:
+                    logging.error(f"Failed to send admin notification: {e}")
+
         elif parsed_data.get('action') == 'broadcast':
             text = parsed_data.get('payload')
             response_text = f"📢 *Демо-рассылка*\n\n{text}\n\n(Всем пользователям якобы ушло это сообщение)"
@@ -76,6 +93,24 @@ async def web_app_data_handler(message: Message):
             })
 
             await message.answer(response_text, parse_mode="Markdown")
+
+            # Уведомление администратора
+            admin_id = os.getenv("ADMIN_ID")
+            if admin_id:
+                try:
+                    user_link = f"@{message.from_user.username}" if message.from_user.username else f"ID: {message.from_user.id}"
+
+                    admin_text = (
+                        "🚨 *Новый лид из Конфигуратора!*\n\n"
+                        f"👤 Контакт: {user_link}\n\n"
+                        f"📦 *База:* {base_title}\n"
+                        f"🧩 *Дополнительные модули:*\n{modules_text}\n\n"
+                        f"💰 *Предварительная оценка:* {total_price:,} ₽"
+                    ).replace(',', ' ')
+
+                    await message.bot.send_message(admin_id, admin_text, parse_mode="Markdown")
+                except Exception as e:
+                    logging.error(f"Failed to send admin notification: {e}")
 
     except Exception as e:
         await message.answer(f"Ошибка обработки: {e}")
