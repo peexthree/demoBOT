@@ -1,6 +1,6 @@
 # bot/showroom.py
 import logging
-from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InlineKeyboardMarkup
+from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputMediaAnimation, InlineKeyboardMarkup
 from aiogram.exceptions import TelegramBadRequest
 
 # Centralized file ID mapping
@@ -10,7 +10,7 @@ SHOWROOM_FILES = {
     "demo_pricing": "AgACAgIAAyEFAATh7MR7AAPlabhaOUOXL0N9UgABXo3E9ngRHjluAAIpHGsb22nASRmIUfVDe8pAAQADAgADeQADOgQ",
     "demo_referral": "AgACAgIAAyEFAATh7MR7AAPkabhaOSAkb6ij62sa2rwmrLSQqZsAAigcaxvbacBJOkW5CiIrYUQBAAMCAAN5AAM6BA",
     "niche_lawyer": "AgACAgIAAyEFAATh7MR7AAPjabhaOeR6VFO7NuMLFZowpz9aHGYAAiccaxvbacBJAd0KasPCuFIBAAMCAAN5AAM6BA",
-    "main_menu": "AgACAgIAAyEFAATh7MR7AAPYabhaNx4vO9OSF-GEtgSgQ8wimmMAAhwcaxvbacBJJzoOn1EndkABAAMCAAN5AAM6BA",
+    "main_menu": "CgACAgIAAxkBAAFE-3FpuGGET3r2QdRIicMe_6nvEUToJgACGZsAAttpwEksm1369MBBNToE",
     "niche_dentist": "AgACAgIAAyEFAATh7MR7AAPiabhaOckZdclAbydRHyJygliL6OEAAiYcaxvbacBJ2w7ZeJzsQMABAAMCAAN5AAM6BA",
     "niche_auto": "AgACAgIAAyEFAATh7MR7AAPhabhaOM9dLAlDrodpMctPLn2n-CsAAiUcaxvbacBJkesUQtrZ4S8BAAMCAAN5AAM6BA",
     "niche_beauty": "AgACAgIAAyEFAATh7MR7AAPgabhaONJ3LieEI7-bJiSXCHj5ZykAAiQcaxvbacBJ6LrmmO7qab0BAAMCAAN5AAM6BA",
@@ -22,6 +22,11 @@ SHOWROOM_FILES = {
     "demo_promo": "AgACAgIAAyEFAATh7MR7AAPaabhaN6XuQx_S4w9zclM7sawDATUAAh4caxvbacBJ7kGBx1XtPWABAAMCAAN5AAM6BA",
 }
 
+SHOWROOM_MEDIA_TYPES = {
+    "main_menu": "animation",
+}
+
+
 async def update_showroom_media(
     event: Message | CallbackQuery,
     file_id_key: str,
@@ -30,22 +35,30 @@ async def update_showroom_media(
 ):
     """
     Helper function to maintain the Single Window showroom interface.
-    Edits the existing message media if it's a callback query with an attached photo message,
-    otherwise deletes the old message (if any) and sends a new photo message.
+    Edits the existing message media if it's a callback query with an attached media message,
+    otherwise deletes the old message (if any) and sends a new media message.
     """
     file_id = SHOWROOM_FILES.get(file_id_key)
     if not file_id:
         file_id = SHOWROOM_FILES.get("main_menu")
+        file_id_key = "main_menu"
+
+    media_type = SHOWROOM_MEDIA_TYPES.get(file_id_key, "photo")
 
     try:
         if isinstance(event, CallbackQuery):
             msg = event.message
 
-            # Check if the message has a photo to edit media
-            if msg and getattr(msg, 'photo', None):
+            # Check if the message has media to edit
+            if msg and (getattr(msg, 'photo', None) or getattr(msg, 'animation', None) or getattr(msg, 'document', None) or getattr(msg, 'video', None)):
                 try:
+                    if media_type == "animation":
+                        media_obj = InputMediaAnimation(media=file_id, caption=caption, parse_mode="HTML")
+                    else:
+                        media_obj = InputMediaPhoto(media=file_id, caption=caption, parse_mode="HTML")
+
                     await msg.edit_media(
-                        media=InputMediaPhoto(media=file_id, caption=caption, parse_mode="HTML"),
+                        media=media_obj,
                         reply_markup=reply_markup
                     )
                 except TelegramBadRequest as e:
@@ -55,27 +68,43 @@ async def update_showroom_media(
                     else:
                         raise e
             else:
-                # The message is text-only or something else, delete it and send a new photo
+                # The message is text-only or something else, delete it and send a new media
                 if msg:
                     try:
                         await msg.delete()
                     except Exception as e:
                         logging.warning(f"Failed to delete old message: {e}")
 
-                await msg.answer_photo(
+                if media_type == "animation":
+                    await msg.answer_animation(
+                        animation=file_id,
+                        caption=caption,
+                        reply_markup=reply_markup,
+                        parse_mode="HTML"
+                    )
+                else:
+                    await msg.answer_photo(
+                        photo=file_id,
+                        caption=caption,
+                        reply_markup=reply_markup,
+                        parse_mode="HTML"
+                    )
+        elif isinstance(event, Message):
+            # It's a direct message (e.g. /start), just send a new media message
+            if media_type == "animation":
+                await event.answer_animation(
+                    animation=file_id,
+                    caption=caption,
+                    reply_markup=reply_markup,
+                    parse_mode="HTML"
+                )
+            else:
+                await event.answer_photo(
                     photo=file_id,
                     caption=caption,
                     reply_markup=reply_markup,
                     parse_mode="HTML"
                 )
-        elif isinstance(event, Message):
-            # It's a direct message (e.g. /start), just send a new photo message
-            await event.answer_photo(
-                photo=file_id,
-                caption=caption,
-                reply_markup=reply_markup,
-                parse_mode="HTML"
-            )
     except Exception as e:
         logging.error(f"Error in update_showroom_media: {e}")
         # Fallback to simple text answer if something goes wrong

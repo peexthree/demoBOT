@@ -7,7 +7,7 @@ from typing import Callable, Dict, Any, Awaitable
 from aiogram import BaseMiddleware
 from aiogram.types import Update
 
-from db import save_event
+from bot.db import save_event
 
 # Глобальный словарь для отслеживания пути пользователя
 # Структура: { user_id: { "username": str, "path": ["action1", "action2"], "last_activity": timestamp } }
@@ -98,7 +98,7 @@ class SmartStalkerMiddleware(BaseMiddleware):
          # Обертка для вызова синхронного Supabase в фоне,
          # чтобы не блокировать event loop
          try:
-             await asyncio.to_thread(save_event, data)
+             await save_event(data)
          except Exception as e:
              logging.error(f"Failed to save event to DB: {e}")
 
