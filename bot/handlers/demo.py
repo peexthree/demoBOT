@@ -6,6 +6,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeybo
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 
+from bot.showroom import update_showroom_media
 from bot.ai_utils import generate_with_fallback, API_KEY
 
 router = Router()
@@ -34,13 +35,10 @@ def get_twa_reply_keyboard():
 
 @router.callback_query(F.data == "main_menu")
 async def main_menu_handler(callback: types.CallbackQuery):
-    await callback.message.edit_text(
+    await update_showroom_media(callback, "main_menu",
         "🤖 <b>Eidos System</b> — цифровой шоурум Архитектора.\n\n"
         "Вы находитесь в демо-версии премиальной системы автоматизации бизнеса.\n\n"
-        "Выберите раздел для изучения:",
-        reply_markup=get_main_menu_keyboard(),
-        parse_mode="HTML"
-    )
+        "Выберите раздел для изучения:", get_main_menu_keyboard())
     await callback.answer()
 
 #@router.message(F.text == "Скрыть меню")
@@ -54,22 +52,19 @@ from bot.states import DemoStates
 @router.callback_query(F.data == "demo_client_path")
 async def demo_client_path(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(DemoStates.choosing_niche)
-    await callback.message.edit_text(
-        "⚙️ <b>Выберите нишу для демонстрации</b>\n\n"
-        "AI моментально адаптируется под любой процесс. Выберите отрасль, чтобы увидеть, как бот общается с клиентами:",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+    await update_showroom_media(callback, "demo_client_path", "⚙️ <b>Выберите нишу для демонстрации</b>\n\n"
+        "AI моментально адаптируется под любой процесс. Выберите отрасль, чтобы увидеть, как бот общается с клиентами:", InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚖️ Юридические услуги (Консалтинг)", callback_data="niche_lawyer")],
             [InlineKeyboardButton(text="🏥 Медицина и клиники", callback_data="niche_dentist")],
             [InlineKeyboardButton(text="🚗 Автобизнес и СТО", callback_data="niche_auto")],
             [InlineKeyboardButton(text="💅 Сфера услуг и Beauty", callback_data="niche_beauty")],
             [InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]
-        ]),
-        parse_mode="HTML"
-    )
+        ]))
     await callback.answer()
 
 @router.callback_query(DemoStates.choosing_niche, F.data.startswith("niche_"))
 async def niche_selected(callback: types.CallbackQuery, state: FSMContext):
+
     niche = callback.data.split("_")[1]
 
     niche_data = {
@@ -83,12 +78,10 @@ async def niche_selected(callback: types.CallbackQuery, state: FSMContext):
     await state.update_data(niche=niche, niche_name=name)
     await state.set_state(DemoStates.in_niche)
 
-    await callback.message.edit_text(
-        f"<i>(Вы вошли в роль клиента)</i>\n\n"
+    await update_showroom_media(callback, f"niche_{niche}", f"<i>(Вы вошли в роль клиента)</i>\n\n"
         f"<b>Добро пожаловать в {name}!</b>\n\n"
         f"Я ваш виртуальный помощник. Я могу проконсультировать вас по {spec}, а также записать на удобное время.\n\n"
-        "Что вас интересует?",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+        "Что вас интересует?", InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🧠 Тест ИИ-консультанта (FAQ)", callback_data="demo_ai_ask")],
             [InlineKeyboardButton(text="📷 Распознавание фото (Оценка)", callback_data="demo_vision")],
             [InlineKeyboardButton(text="📄 Авто-обработка документов (PDF)", callback_data="demo_docs")],
@@ -96,22 +89,18 @@ async def niche_selected(callback: types.CallbackQuery, state: FSMContext):
             [InlineKeyboardButton(text="🧮 Интерактивный расчет стоимости", callback_data="demo_calculator")],
             [InlineKeyboardButton(text="🎁 Система лояльности (Промокоды)", callback_data="demo_promo")],
             [InlineKeyboardButton(text="🔙 Сменить нишу", callback_data="demo_client_path")]
-        ]),
-        parse_mode="HTML"
-    )
+        ]))
     await callback.answer()
 
 # Feature 6: Smart FAQ and Memory
+
 @router.callback_query(F.data == "demo_ai_ask")
+
 async def demo_ai_ask(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.edit_text(
-        "🧠 <b>ИИ-Консультант (Демо)</b>\n\n"
+    await update_showroom_media(callback, "demo_ai_ask", "🧠 <b>ИИ-Консультант (Демо)</b>\n\n"
         "Напишите любой вопрос, связанный с вашей выбранной нишей (или общей автоматизацией). "
         "Попробуйте спросить: 'Какие у вас цены?' или 'Запишите меня на завтра'.\n\n"
-        "Жду ваш вопрос:",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад / Отменить", callback_data="demo_niche_back")]]),
-        parse_mode="HTML"
-    )
+        "Жду ваш вопрос:", InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад / Отменить", callback_data="demo_niche_back")]]))
     await state.set_state(DemoStates.waiting_for_question)
     await callback.answer()
 
@@ -314,7 +303,7 @@ async def demo_pricing(callback: types.CallbackQuery):
     markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
 
     try:
-        await callback.message.edit_text(text, reply_markup=markup, parse_mode="HTML")
+        await update_showroom_media(callback, "demo_pricing", text, markup)
     except Exception as e:
         # Ignore message not modified error
         pass
@@ -328,12 +317,8 @@ async def demo_stoma_booking(callback: types.CallbackQuery):
 # Feature 2: Photo Analysis (Gemini Vision)
 @router.callback_query(F.data == "demo_vision")
 async def demo_vision(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.edit_text(
-        "📷 <b>Анализ по фото (Vision ИИ)</b>\n\n"
-        "Отправьте фото (например, разбитое авто для СТО, товар на полке, зубной снимок). ИИ проанализирует его моментально.",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад / Отменить", callback_data="demo_niche_back")]]),
-        parse_mode="HTML"
-    )
+    await update_showroom_media(callback, "demo_vision", "📷 <b>Анализ по фото (Vision ИИ)</b>\n\n"
+        "Отправьте фото (например, разбитое авто для СТО, товар на полке, зубной снимок). ИИ проанализирует его моментально.", InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад / Отменить", callback_data="demo_niche_back")]]))
     await state.set_state(DemoStates.waiting_for_photo)
     await callback.answer()
 
@@ -368,22 +353,15 @@ async def handle_photo(message: types.Message, state: FSMContext):
     else:
         answer_text = "Демонстрация зрения: ИИ распознал объекты на фото и готов выдать предварительную оценку стоимости."
 
-    await status_msg.edit_text(
-        f"📷 <b>Результат анализа (Vision ИИ):</b>\n\n{answer_text}",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 В меню ниши", callback_data="demo_niche_back")]]),
-        parse_mode="HTML"
-    )
+    await status_msg.delete()
+    await update_showroom_media(message, "demo_vision", f"📷 <b>Результат анализа (Vision ИИ):</b>\n\n{answer_text}", InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 В меню ниши", callback_data="demo_niche_back")]]))
     await state.set_state(DemoStates.in_niche)
 
 # Feature 3: Voice Message Recognition
 @router.callback_query(F.data == "demo_voice")
 async def demo_voice(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.edit_text(
-        "🎤 <b>Голосовой ассистент</b>\n\n"
-        "Клиенты не любят писать. Запишите короткое голосовое сообщение с любым вопросом.",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад / Отменить", callback_data="demo_niche_back")]]),
-        parse_mode="HTML"
-    )
+    await update_showroom_media(callback, "demo_voice", "🎤 <b>Голосовой ассистент</b>\n\n"
+        "Клиенты не любят писать. Запишите короткое голосовое сообщение с любым вопросом.", InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад / Отменить", callback_data="demo_niche_back")]]))
     await state.set_state(DemoStates.waiting_for_voice)
     await callback.answer()
 
@@ -508,8 +486,7 @@ async def demo_calculator(callback: types.CallbackQuery, state: FSMContext):
         ans2 = step.split("result")[-1].strip("_")
         ans1 = data.get("calc_ans1", "неизвестно")
 
-        status_msg = await callback.message.edit_text(
-            "🔄 <i>Передаю данные ИИ для индивидуального расчета...</i>",
+        status_msg = await update_showroom_media(callback, "demo_vision", "🔄 <i>Передаю данные ИИ для индивидуального расчета...</i>",
             parse_mode="HTML"
         )
 
@@ -531,19 +508,11 @@ async def demo_calculator(callback: types.CallbackQuery, state: FSMContext):
             [InlineKeyboardButton(text="🎯 Оформить", callback_data="demo_leave_lead")],
             [InlineKeyboardButton(text="🔙 В меню ниши", callback_data="demo_niche_back")]
         ]
-        await status_msg.edit_text(
-            text,
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard),
-            parse_mode="HTML"
-        )
+        await update_showroom_media(callback, "demo_calculator", text, InlineKeyboardMarkup(inline_keyboard=keyboard))
         await callback.answer()
         return
 
-    await callback.message.edit_text(
-        text,
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard),
-        parse_mode="HTML"
-    )
+    await update_showroom_media(callback, "demo_calculator", text, InlineKeyboardMarkup(inline_keyboard=keyboard))
     await callback.answer()
 
 # Feature 7: Unique Promo Code Generation
@@ -559,11 +528,7 @@ async def demo_promo(callback: types.CallbackQuery, state: FSMContext):
         "Ваш персональный промокод: <span class='tg-spoiler'><b>" + code + "</b></span>\n\n"
         "<i>Нажмите на него, чтобы скопировать.</i>"
     )
-    await callback.message.edit_text(
-        text,
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 В меню ниши", callback_data="demo_niche_back")]]),
-        parse_mode="HTML"
-    )
+    await update_showroom_media(callback, "demo_promo", text, InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 В меню ниши", callback_data="demo_niche_back")]]))
     await callback.answer()
 
 @router.callback_query(F.data == "demo_niche_back")
@@ -586,12 +551,10 @@ async def demo_niche_back(callback: types.CallbackQuery, state: FSMContext):
     spec = niche_data.get(niche, "ваших услугах")
 
     await state.set_state(DemoStates.in_niche)
-    await callback.message.edit_text(
-        f"<i>(Вы вошли в роль клиента)</i>\n\n"
+    await update_showroom_media(callback, f"niche_{niche}", f"<i>(Вы вошли в роль клиента)</i>\n\n"
         f"<b>Добро пожаловать в {niche_name}!</b>\n\n"
         f"Я ваш виртуальный помощник. Я могу проконсультировать вас по {spec}, а также записать на удобное время.\n\n"
-        "Что вас интересует?",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+        "Что вас интересует?", InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🧠 Тест ИИ-консультанта (FAQ)", callback_data="demo_ai_ask")],
             [InlineKeyboardButton(text="📷 Распознавание фото (Оценка)", callback_data="demo_vision")],
             [InlineKeyboardButton(text="📄 Авто-обработка документов (PDF)", callback_data="demo_docs")],
@@ -599,9 +562,7 @@ async def demo_niche_back(callback: types.CallbackQuery, state: FSMContext):
             [InlineKeyboardButton(text="🧮 Интерактивный расчет стоимости", callback_data="demo_calculator")],
             [InlineKeyboardButton(text="🎁 Система лояльности (Промокоды)", callback_data="demo_promo")],
             [InlineKeyboardButton(text="🔙 Сменить нишу", callback_data="demo_client_path")]
-        ]),
-        parse_mode="HTML"
-    )
+        ]))
     await callback.answer()
 
 
@@ -700,21 +661,15 @@ def get_innovations_keyboard(page: int, per_page: int = 1):
 
 @router.callback_query(F.data == "demo_innovations")
 async def demo_innovations(callback: types.CallbackQuery):
-    await callback.message.edit_text(
-        get_innovations_text(0),
-        reply_markup=get_innovations_keyboard(0),
-        parse_mode="HTML"
-    )
+    await update_showroom_media(callback, "demo_innovations",
+        get_innovations_text(0), get_innovations_keyboard(0))
     await callback.answer()
 
 @router.callback_query(F.data.startswith("demo_innovations_page_"))
 async def demo_innovations_page(callback: types.CallbackQuery):
     page = int(callback.data.split("_")[-1])
-    await callback.message.edit_text(
-        get_innovations_text(page),
-        reply_markup=get_innovations_keyboard(page),
-        parse_mode="HTML"
-    )
+    await update_showroom_media(callback, "demo_innovations",
+        get_innovations_text(page), get_innovations_keyboard(page))
     await callback.answer()
 
 @router.message(F.text == "🏠 Главное меню")
@@ -770,25 +725,18 @@ async def handle_document(message: types.Message, state: FSMContext):
         f"<i>В реальной системе здесь будет сгенерирован счет на оплату или коммерческое предложение в формате PDF, готовое к отправке клиенту.</i>"
     ).replace(',', ' ')
 
-    await status_msg.edit_text(
-        ai_text,
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+    await status_msg.delete()
+    await update_showroom_media(message, "demo_docs", ai_text, InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🎯 Оформить заявку", callback_data="demo_leave_lead")],
             [InlineKeyboardButton(text="🔙 В меню ниши", callback_data="demo_niche_back")]
-        ]),
-        parse_mode="HTML"
-    )
+        ]))
 
 @router.callback_query(F.data == "demo_docs")
 async def demo_docs(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.edit_text(
-        "📄 <b>Умный Парсинг Смет и Документов</b>\n\n"
+    await update_showroom_media(callback, "demo_docs", "📄 <b>Умный Парсинг Смет и Документов</b>\n\n"
 
 
-        "Отправьте мне любой PDF, Excel файл или скан счета. ИИ моментально прочитает его и сопоставит с прайсом CRM.",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад / Отменить", callback_data="demo_niche_back")]]),
-        parse_mode="HTML"
-    )
+        "Отправьте мне любой PDF, Excel файл или скан счета. ИИ моментально прочитает его и сопоставит с прайсом CRM.", InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад / Отменить", callback_data="demo_niche_back")]]))
     # We stay in DemoStates.in_niche, the document handler listens there
     await callback.answer()
 
@@ -810,9 +758,6 @@ async def demo_referral(callback: types.CallbackQuery, state: FSMContext):
         "<i>(Нажмите на ссылку, чтобы скопировать)</i>"
     )
 
-    await callback.message.edit_text(
-        text,
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]]),
-        parse_mode="HTML"
-    )
+    await update_showroom_media(callback, "demo_referral",
+        text, InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]]))
     await callback.answer()
