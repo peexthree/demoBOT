@@ -738,6 +738,8 @@ async def handle_document(message: types.Message, state: FSMContext):
 async def demo_docs(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         "📄 <b>Умный Парсинг Смет и Документов</b>\n\n"
+feature/b2b-gemini-models-update-6648120734400954035
+
 
         "Отправьте мне любой PDF, Excel файл или скан счета. ИИ моментально прочитает его и сопоставит с прайсом CRM.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад / Отменить", callback_data="demo_niche_back")]]),
