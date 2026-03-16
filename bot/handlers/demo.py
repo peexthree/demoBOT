@@ -711,9 +711,7 @@ async def handle_document(message: types.Message, state: FSMContext):
 @router.callback_query(F.data == "demo_docs")
 async def demo_docs(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
-        "📄 <b>Умный Парсинг Смет и Документов</b>
-
-"
+        "📄 <b>Умный Парсинг Смет и Документов</b>\n\n"
         "Отправьте мне любой PDF, Excel файл или скан счета. ИИ моментально прочитает его и сопоставит с прайсом CRM.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад / Отменить", callback_data="demo_niche_back")]]),
         parse_mode="HTML"
