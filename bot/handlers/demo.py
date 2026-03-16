@@ -1,3 +1,4 @@
+import html
 import os
 import asyncio
 from aiogram import Router, F, types
@@ -147,7 +148,6 @@ async def handle_ai_question(message: types.Message, state: FSMContext):
              answer_text = await generate_with_fallback(prompt)
 
              # Save history
-             import html
              history += f" User: {html.escape(message.text)}. You: {html.escape(answer_text)}."
              await state.update_data(history=history[-1000:])
         except Exception as e:
@@ -156,7 +156,7 @@ async def handle_ai_question(message: types.Message, state: FSMContext):
         await asyncio.sleep(2)
         answer_text = f"В реальности ИИ проанализирует запрос '{message.text}' для бизнеса {niche_name} и выдаст ответ, подводящий к продаже или записи."
 
-    final_text = f"🤖 <b>Ответ ассистента ({niche_name}):</b>\n\n{answer_text}"
+    final_text = f"🤖 <b>Ответ ассистента ({niche_name}):</b>\n\n{html.escape(answer_text)}"
 
     if len(final_text) > 4000:
         final_text = final_text[:4000] + "...\n\n[Ответ обрезан]"

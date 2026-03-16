@@ -39,9 +39,9 @@ async def web_app_data_handler(message: Message):
                 "item_price": item.get('price')
             })
 
+            import html
             response_text = (
-                import html
-            f"🎉 Вы успешно оформили заказ: <b>{html.escape(str(item.get('title')))}</b>.\n"
+                f"🎉 Вы успешно оформили заказ: <b>{html.escape(str(item.get('title')))}</b>.\n"
                 f"💳 Стоимость: {item.get('price')} ₽\n\n"
                 "Ваша заявка моментально зафиксирована в CRM."
             )
