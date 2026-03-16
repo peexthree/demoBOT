@@ -96,7 +96,8 @@ async def start_cmd(message: types.Message, command: CommandObject, state: FSMCo
     # If the user has a profile photo or we just send an HTML message (simulating a banner with rich text)
     # First send the persistent keyboard, then the inline markup
     await message.answer("Инициализация интерфейса...", reply_markup=get_twa_reply_keyboard())
-    await message.answer(welcome_text, reply_markup=markup, parse_mode="HTML")
+    from bot.showroom import update_showroom_media
+    await update_showroom_media(message, "main_menu", welcome_text, markup)
 
 @router.callback_query(F.data.startswith("onboard_"))
 async def onboard_niche(callback: types.CallbackQuery, state: FSMContext):
