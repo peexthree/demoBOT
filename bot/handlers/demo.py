@@ -24,6 +24,8 @@ class AIState(StatesGroup):
 def get_main_menu_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🚀 [ПОСМОТРЕТЬ РЕШЕНИЯ]", callback_data="demo_portfolio")],
+        [InlineKeyboardButton(text="🌟 [10 ИННОВАЦИЙ ДЛЯ БИЗНЕСА]", callback_data="demo_innovations")],
+        [InlineKeyboardButton(text="🌟 [10 ИННОВАЦИЙ ДЛЯ БИЗНЕСА]", callback_data="demo_innovations")],
         [InlineKeyboardButton(text="⚙️ [ДЕМО-РЕЖИМ: АВТОМАТИЗАЦИЯ]", callback_data="demo_client_path")],
         [InlineKeyboardButton(text="📑 [ИНВЕСТИЦИОННЫЙ ЧЕК-ЛИСТ]", callback_data="demo_pricing")],
         [InlineKeyboardButton(text="💬 [ОБСУДИТЬ ПРОЕКТ]", url=f"tg://user?id={os.getenv('ADMIN_ID', '0')}")]
@@ -75,7 +77,7 @@ async def demo_portfolio(callback: types.CallbackQuery):
     await callback.answer()
 
 # Feature 1: Dynamic Niche Selection
-from states import DemoStates
+from bot.states import DemoStates
 
 @router.callback_query(F.data == "demo_client_path")
 async def demo_client_path(callback: types.CallbackQuery, state: FSMContext):
@@ -120,7 +122,7 @@ async def niche_selected(callback: types.CallbackQuery, state: FSMContext):
             [InlineKeyboardButton(text="🎤 Записать аудио (Голосовой ИИ)", callback_data="demo_voice")],
             [InlineKeyboardButton(text="🧮 Калькулятор стоимости", callback_data="demo_calculator")],
             [InlineKeyboardButton(text="🎁 Получить промокод", callback_data="demo_promo")],
-            [InlineKeyboardButton(text="⚙️ Сменить нишу", callback_data="demo_client_path")]
+            [InlineKeyboardButton(text="🔙 Сменить нишу", callback_data="demo_client_path")]
         ]),
         parse_mode="HTML"
     )
@@ -134,6 +136,7 @@ async def demo_ai_ask(callback: types.CallbackQuery, state: FSMContext):
         "Напишите любой вопрос, связанный с вашей выбранной нишей (или общей автоматизацией). "
         "Попробуйте спросить: 'Какие у вас цены?' или 'Запишите меня на завтра'.\n\n"
         "Жду ваш вопрос:",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад / Отменить", callback_data="demo_niche_back")]]),
         parse_mode="HTML"
     )
     await state.set_state(DemoStates.waiting_for_question)
@@ -173,7 +176,7 @@ async def handle_ai_question(message: types.Message, state: FSMContext):
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✍️ Продолжить диалог", callback_data="demo_ai_ask")],
             [InlineKeyboardButton(text="🎯 Оставить заявку (Тест)", callback_data="demo_leave_lead")],
-            [InlineKeyboardButton(text="⚙️ Сменить нишу", callback_data="demo_client_path")]
+            [InlineKeyboardButton(text="🔙 Сменить нишу", callback_data="demo_client_path")]
         ]),
         parse_mode="HTML"
     )
@@ -295,6 +298,7 @@ async def demo_vision(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         "📷 <b>Анализ по фото (Vision ИИ)</b>\n\n"
         "Отправьте фото (например, разбитое авто для СТО, товар на полке, зубной снимок). ИИ проанализирует его моментально.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад / Отменить", callback_data="demo_niche_back")]]),
         parse_mode="HTML"
     )
     await state.set_state(DemoStates.waiting_for_photo)
@@ -334,7 +338,7 @@ async def handle_photo(message: types.Message, state: FSMContext):
 
     await status_msg.edit_text(
         f"📷 <b>Результат анализа (Vision ИИ):</b>\n\n{answer_text}",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⚙️ Вернуться в Демо", callback_data="demo_client_path")]]),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 В меню ниши", callback_data="demo_niche_back")]]),
         parse_mode="HTML"
     )
     await state.set_state(DemoStates.in_niche)
@@ -345,6 +349,7 @@ async def demo_voice(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         "🎤 <b>Голосовой ассистент</b>\n\n"
         "Клиенты не любят писать. Запишите короткое голосовое сообщение с любым вопросом.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад / Отменить", callback_data="demo_niche_back")]]),
         parse_mode="HTML"
     )
     await state.set_state(DemoStates.waiting_for_voice)
@@ -395,7 +400,7 @@ async def handle_voice(message: types.Message, state: FSMContext):
 
     await status_msg.edit_text(
         f"🎤 <b>Ответ ассистента ({niche_name}):</b>\n\n{answer_text}",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⚙️ Вернуться в Демо", callback_data="demo_client_path")]]),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 В меню ниши", callback_data="demo_niche_back")]]),
         parse_mode="HTML"
     )
     await state.set_state(DemoStates.in_niche)
@@ -403,29 +408,102 @@ async def handle_voice(message: types.Message, state: FSMContext):
 # Feature 4: Interactive Quiz / Calculator
 @router.callback_query(F.data.startswith("demo_calc"))
 async def demo_calculator(callback: types.CallbackQuery, state: FSMContext):
-    # dynamic edit
+    data = await state.get_data()
+    niche = data.get("niche", "default")
+    niche_name = data.get("niche_name", "Ваш бизнес")
+
     step = callback.data.split("_")[-1] if "_" in callback.data else "start"
 
+    # Define questions based on niche
+    questions = {
+        "lawyer": {
+            "q1": "Какая отрасль права вас интересует?",
+            "a1": [("Гражданское", "civil"), ("Уголовное", "criminal"), ("Арбитраж", "arbitration")],
+            "q2": "Какой тип услуги вам нужен?",
+            "a2": [("Консультация", "consult"), ("Представление в суде", "court"), ("Составление договора", "contract")]
+        },
+        "dentist": {
+            "q1": "Что вас беспокоит?",
+            "a1": [("Боль в зубе", "pain"), ("Эстетика (отбеливание)", "aesthetic"), ("Профилактика (чистка)", "cleaning")],
+            "q2": "Когда вы хотите записаться?",
+            "a2": [("Как можно скорее", "asap"), ("В течение недели", "week"), ("Плановый осмотр", "plan")]
+        },
+        "auto": {
+            "q1": "Какая услуга требуется вашему авто?",
+            "a1": [("Плановое ТО", "maintenance"), ("Ремонт двигателя/ходовой", "repair"), ("Диагностика", "diag")],
+            "q2": "У вас свои запчасти или нужны наши?",
+            "a2": [("Свои", "own_parts"), ("Нужны ваши", "your_parts"), ("Нужна консультация", "consult_parts")]
+        },
+        "beauty": {
+            "q1": "Какую процедуру вы хотите сделать?",
+            "a1": [("Стрижка / Окрашивание", "hair"), ("Маникюр / Педикюр", "nails"), ("Уход за лицом", "face")],
+            "q2": "К какому мастеру вы хотите попасть?",
+            "a2": [("Топ-мастер", "top"), ("Обычный мастер", "regular"), ("Любой свободный", "any")]
+        },
+        "default": {
+             "q1": "Какой объем работ?",
+             "a1": [("Маленький", "small"), ("Большой", "big")],
+             "q2": "Как срочно?",
+             "a2": [("Не к спеху", "slow"), ("Горит!", "fast")]
+        }
+    }
+
+    niche_q = questions.get(niche, questions["default"])
+
     if step == "start" or step == "calculator":
-        text = "🧮 <b>Интерактивный Квиз (Калькулятор)</b>\n\nОтветьте на 2 вопроса, чтобы узнать стоимость:\n\nКакой объем работ?"
-        keyboard = [
-            [InlineKeyboardButton(text="Маленький", callback_data="demo_calc_step2_small")],
-            [InlineKeyboardButton(text="Большой", callback_data="demo_calc_step2_big")]
-        ]
+        text = f"🧮 <b>Квиз ({niche_name})</b>\n\nОтветьте на 2 вопроса для расчета стоимости:\n\n{niche_q['q1']}"
+        keyboard = []
+        for text_btn, data_btn in niche_q['a1']:
+            keyboard.append([InlineKeyboardButton(text=text_btn, callback_data=f"demo_calc_step2_{data_btn}")])
+        keyboard.append([InlineKeyboardButton(text="🔙 Отмена", callback_data="demo_niche_back")])
+
     elif step.startswith("step2"):
-        volume = step.split("_")[1]
-        await state.update_data(calc_volume=volume)
-        text = "🧮 <b>Интерактивный Квиз</b>\n\nВопрос 2/2: Как срочно?"
-        keyboard = [
-            [InlineKeyboardButton(text="Не к спеху", callback_data="demo_calc_result_slow")],
-            [InlineKeyboardButton(text="Горит!", callback_data="demo_calc_result_fast")]
-        ]
+        # We got answer for Q1
+        ans1 = step.split("step2")[-1].strip("_")
+        await state.update_data(calc_ans1=ans1)
+
+        text = f"🧮 <b>Квиз ({niche_name})</b>\n\nВопрос 2/2: {niche_q['q2']}"
+        keyboard = []
+        for text_btn, data_btn in niche_q['a2']:
+             keyboard.append([InlineKeyboardButton(text=text_btn, callback_data=f"demo_calc_result_{data_btn}")])
+        keyboard.append([InlineKeyboardButton(text="🔙 Отмена", callback_data="demo_niche_back")])
+
     elif step.startswith("result"):
-        text = "🧮 <b>Расчет завершен!</b>\n\nВаша предварительная стоимость: <b>от 15 000 до 35 000 рублей.</b>\n\nХотите оформить заявку?"
+        # We got answer for Q2
+        ans2 = step.split("result")[-1].strip("_")
+        ans1 = data.get("calc_ans1", "неизвестно")
+
+        status_msg = await callback.message.edit_text(
+            "🔄 <i>Передаю данные ИИ для индивидуального расчета...</i>",
+            parse_mode="HTML"
+        )
+
+        # Determine actual text answers based on keys
+        text_ans1 = next((item[0] for item in niche_q['a1'] if item[1] == ans1), ans1)
+        text_ans2 = next((item[0] for item in niche_q['a2'] if item[1] == ans2), ans2)
+
+        if model:
+             try:
+                 prompt = f"Ты ИИ-ассистент компании {niche_name}. Клиент прошел квиз. Вопрос 1: {niche_q['q1']} Ответ: {text_ans1}. Вопрос 2: {niche_q['q2']} Ответ: {text_ans2}. Сделай примерный расчет стоимости и времени, и предложи записаться/оставить заявку. Напиши 1 короткий, привлекательный абзац. ОТВЕЧАЙ ПРОСТЫМ ТЕКСТОМ БЕЗ MARKDOWN."
+                 response = await model.generate_content_async(prompt)
+                 ai_text = response.text
+             except Exception as e:
+                 ai_text = f"Ваша предварительная стоимость: от 15 000 до 35 000 рублей. ({str(e)})"
+        else:
+             ai_text = f"ИИ проанализировал ваши ответы ({text_ans1}, {text_ans2}) и подготовил бы персональное коммерческое предложение с ценой и сроками."
+
+        text = f"🧮 <b>Расчет завершен!</b>\n\n{ai_text}\n\nХотите оформить заявку?"
         keyboard = [
             [InlineKeyboardButton(text="🎯 Оформить", callback_data="demo_leave_lead")],
-            [InlineKeyboardButton(text="⚙️ Назад в меню", callback_data="demo_client_path")]
+            [InlineKeyboardButton(text="🔙 В меню ниши", callback_data="demo_niche_back")]
         ]
+        await status_msg.edit_text(
+            text,
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard),
+            parse_mode="HTML"
+        )
+        await callback.answer()
+        return
 
     await callback.message.edit_text(
         text,
@@ -449,7 +527,132 @@ async def demo_promo(callback: types.CallbackQuery, state: FSMContext):
     )
     await callback.message.edit_text(
         text,
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⚙️ Вернуться в Демо", callback_data="demo_client_path")]]),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 В меню ниши", callback_data="demo_niche_back")]]),
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+@router.callback_query(F.data == "demo_niche_back")
+async def demo_niche_back(callback: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    niche = data.get("niche")
+    niche_name = data.get("niche_name", "Ваш бизнес")
+
+    if not niche:
+        # Fallback to main demo selection if no niche selected
+        await demo_client_path(callback, state)
+        return
+
+    niche_data = {
+        "lawyer": "оформлении документов и защите прав",
+        "dentist": "записи на прием и ценах на лечение",
+        "auto": "ремонте, запчастях и записи на диагностику",
+        "beauty": "услугах, мастерах и записи на процедуры"
+    }
+    spec = niche_data.get(niche, "ваших услугах")
+
+    await state.set_state(DemoStates.in_niche)
+    await callback.message.edit_text(
+        f"<i>(Вы вошли в роль клиента)</i>\n\n"
+        f"<b>Добро пожаловать в {niche_name}!</b>\n\n"
+        f"Я ваш виртуальный помощник. Я могу проконсультировать вас по {spec}, а также записать на удобное время.\n\n"
+        "Что вас интересует?",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🧠 Задать вопрос ИИ (FAQ & Консультация)", callback_data="demo_ai_ask")],
+            [InlineKeyboardButton(text="📷 Анализ по фото (Vision ИИ)", callback_data="demo_vision")],
+            [InlineKeyboardButton(text="🎤 Записать аудио (Голосовой ИИ)", callback_data="demo_voice")],
+            [InlineKeyboardButton(text="🧮 Калькулятор стоимости", callback_data="demo_calculator")],
+            [InlineKeyboardButton(text="🎁 Получить промокод", callback_data="demo_promo")],
+            [InlineKeyboardButton(text="🔙 Сменить нишу", callback_data="demo_client_path")]
+        ]),
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+
+# Creative improvements showcase
+@router.callback_query(F.data == "demo_innovations")
+async def demo_innovations(callback: types.CallbackQuery):
+    text = (
+        "🌟 <b>Топ-10 Инноваций для Вашего Бота</b> 🌟\n\n"
+        "<i>Чем мы можем удивить ваших клиентов:</i>\n\n"
+        "1️⃣ <b>Клонирование голоса:</b> Бот общается аудиосообщениями голосом владельца бизнеса (через ElevenLabs).\n"
+        "2️⃣ <b>Smart Vision-Контроль:</b> ИИ распознает чеки, бракованный товар или анализирует улыбку пациента по фото.\n"
+        "3️⃣ <b>Мини-Tinder механика:</b> Свайпы карточек товаров или мастеров (WebApp Swipe UI) для вовлечения.\n"
+        "4️⃣ <b>Геймификация и Квесты:</b> Скрытые пасхалки, мини-игры за бонусы и баллы лояльности.\n"
+        "5️⃣ <b>DeepFake Video Аватары:</b> Генерация персонализированных видео-ответов от лица менеджера на лету.\n"
+        "6️⃣ <b>Авто-прогрев \"Потеряшек\":</b> Умная система касаний (NPS, поздравления) с генерацией уникальных промптов.\n"
+        "7️⃣ <b>AR-Примерочная (Web):</b> Дополненная реальность прямо в Telegram WebApp (посмотреть диван в комнате).\n"
+        "8️⃣ <b>Интеграция с GPT-4o:</b> Моментальные голосовые диалоги в реальном времени (Voice-to-Voice) без задержек.\n"
+        "9️⃣ <b>Умный Календарь (Sync):</b> Интеграция с YClients/Google Calendar — бот сам находит окна и переносит записи.\n"
+        "🔟 <b>Нейро-Аналитика Лидов:</b> Бот автоматически присваивает теги (горячий/холодный) и строит дашборды в Notion.\n\n"
+        "💡 <i>Любая из этих функций может стать киллер-фичей вашего проекта!</i>"
+    )
+    await callback.message.edit_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]]),
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+@router.callback_query(F.data == "demo_niche_back")
+async def demo_niche_back(callback: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    niche = data.get("niche")
+    niche_name = data.get("niche_name", "Ваш бизнес")
+
+    if not niche:
+        # Fallback to main demo selection if no niche selected
+        await demo_client_path(callback, state)
+        return
+
+    niche_data = {
+        "lawyer": "оформлении документов и защите прав",
+        "dentist": "записи на прием и ценах на лечение",
+        "auto": "ремонте, запчастях и записи на диагностику",
+        "beauty": "услугах, мастерах и записи на процедуры"
+    }
+    spec = niche_data.get(niche, "ваших услугах")
+
+    await state.set_state(DemoStates.in_niche)
+    await callback.message.edit_text(
+        f"<i>(Вы вошли в роль клиента)</i>\n\n"
+        f"<b>Добро пожаловать в {niche_name}!</b>\n\n"
+        f"Я ваш виртуальный помощник. Я могу проконсультировать вас по {spec}, а также записать на удобное время.\n\n"
+        "Что вас интересует?",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🧠 Задать вопрос ИИ (FAQ & Консультация)", callback_data="demo_ai_ask")],
+            [InlineKeyboardButton(text="📷 Анализ по фото (Vision ИИ)", callback_data="demo_vision")],
+            [InlineKeyboardButton(text="🎤 Записать аудио (Голосовой ИИ)", callback_data="demo_voice")],
+            [InlineKeyboardButton(text="🧮 Калькулятор стоимости", callback_data="demo_calculator")],
+            [InlineKeyboardButton(text="🎁 Получить промокод", callback_data="demo_promo")],
+            [InlineKeyboardButton(text="🔙 Сменить нишу", callback_data="demo_client_path")]
+        ]),
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+# Creative improvements showcase
+@router.callback_query(F.data == "demo_innovations")
+async def demo_innovations(callback: types.CallbackQuery):
+    text = (
+        "🌟 <b>Топ-10 Инноваций для Вашего Бота</b> 🌟\n\n"
+        "<i>Чем мы можем удивить ваших клиентов:</i>\n\n"
+        "1️⃣ <b>Клонирование голоса:</b> Бот общается аудиосообщениями голосом владельца бизнеса (через ElevenLabs).\n"
+        "2️⃣ <b>Smart Vision-Контроль:</b> ИИ распознает чеки, бракованный товар или анализирует улыбку пациента по фото.\n"
+        "3️⃣ <b>Мини-Tinder механика:</b> Свайпы карточек товаров или мастеров (WebApp Swipe UI) для вовлечения.\n"
+        "4️⃣ <b>Геймификация и Квесты:</b> Скрытые пасхалки, мини-игры за бонусы и баллы лояльности.\n"
+        "5️⃣ <b>DeepFake Video Аватары:</b> Генерация персонализированных видео-ответов от лица менеджера на лету.\n"
+        "6️⃣ <b>Авто-прогрев \"Потеряшек\":</b> Умная система касаний (NPS, поздравления) с генерацией уникальных промптов.\n"
+        "7️⃣ <b>AR-Примерочная (Web):</b> Дополненная реальность прямо в Telegram WebApp (посмотреть диван в комнате).\n"
+        "8️⃣ <b>Интеграция с GPT-4o:</b> Моментальные голосовые диалоги в реальном времени (Voice-to-Voice) без задержек.\n"
+        "9️⃣ <b>Умный Календарь (Sync):</b> Интеграция с YClients/Google Calendar — бот сам находит окна и переносит записи.\n"
+        "🔟 <b>Нейро-Аналитика Лидов:</b> Бот автоматически присваивает теги (горячий/холодный) и строит дашборды в Notion.\n\n"
+        "💡 <i>Любая из этих функций может стать киллер-фичей вашего проекта!</i>"
+    )
+    await callback.message.edit_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]]),
         parse_mode="HTML"
     )
     await callback.answer()
