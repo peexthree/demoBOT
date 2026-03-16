@@ -149,7 +149,7 @@ async def demo_leave_lead(callback: types.CallbackQuery, state: FSMContext):
     niche_name = data.get("niche_name", "Бизнес")
 
     # User feedback simulation
-    await callback.message.edit_text(
+    await callback.message.edit_caption(caption=
         f"✅ <b>Заявка в {niche_name} успешно оформлена!</b>\n\n"
         "<i>(Вы как клиент получили это подтверждение)</i>\n\n"
         "А теперь посмотрите, что в эту же секунду придет владельцу бизнеса в отдельный канал или личку 👇",
@@ -222,7 +222,7 @@ async def nps_action(callback: types.CallbackQuery):
 
 @router.callback_query(F.data.startswith("demo_niche_"))
 async def demo_niche(callback: types.CallbackQuery):
-    await callback.message.edit_text(
+    await callback.message.edit_caption(caption=
         "🛍 <b>Оформление заказа</b>\n\n"
         "Клиент нажимает пару кнопок, выбирает товар и оплачивает внутри Telegram.\n"
         "Весь процесс занимает 30 секунд. Вы мгновенно получаете деньги и уведомление в свою CRM.\n\n"
@@ -322,40 +322,40 @@ async def demo_vision(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(DemoStates.waiting_for_photo)
     await callback.answer()
 
-@router.message(DemoStates.waiting_for_photo, F.photo)
-async def handle_photo(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    niche_name = data.get("niche_name", "Бизнес Архитектор")
-
-    status_msg = await message.answer("🔄 <i>Загружаю зрение терминатора...</i>", parse_mode="HTML")
-    await message.bot.send_chat_action(chat_id=message.chat.id, action="typing")
-
-    if API_KEY:
-        try:
-            import io
-            photo = message.photo[-1]
-            file_info = await message.bot.get_file(photo.file_id)
-            file_bytes = io.BytesIO()
-            await message.bot.download_file(file_info.file_path, file_bytes)
-
-            prompt = f"Действуй профессионально в роли ассистента компании {niche_name}. Проанализируй это фото. Если на нем есть дефекты, документы, зубы (в зависимости от ниши) - опиши их. Предложи решение или запиши на осмотр. Ответ должен быть кратким и по делу, не более 50-100 слов. ОТВЕЧАЙ ПРОСТЫМ ТЕКСТОМ БЕЗ MARKDOWN."
-
-            image_parts = [
-                {
-                    "mime_type": "image/jpeg",
-                    "data": file_bytes.getvalue()
-                }
-            ]
-
-            answer_text = await generate_with_fallback(prompt, image_parts=[image_parts[0]])
-        except Exception as e:
-            answer_text = "❌ Ошибка при анализе изображения ИИ: " + str(e)
-    else:
-        answer_text = "Демонстрация зрения: ИИ распознал объекты на фото и готов выдать предварительную оценку стоимости."
-
-    await status_msg.delete()
-    await update_showroom_media(message, "demo_vision", f"📷 <b>Результат анализа (Vision ИИ):</b>\n\n{answer_text}", InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 В меню ниши", callback_data="demo_niche_back")]]))
-    await state.set_state(DemoStates.in_niche)
+# @router.message(DemoStates.waiting_for_photo, F.photo)
+# async def handle_photo(message: types.Message, state: FSMContext):
+#     data = await state.get_data()
+#     niche_name = data.get("niche_name", "Бизнес Архитектор")
+#
+#     status_msg = await message.answer("🔄 <i>Загружаю зрение терминатора...</i>", parse_mode="HTML")
+#     await message.bot.send_chat_action(chat_id=message.chat.id, action="typing")
+#
+#     if API_KEY:
+#         try:
+#             import io
+#             photo = message.photo[-1]
+#             file_info = await message.bot.get_file(photo.file_id)
+#             file_bytes = io.BytesIO()
+#             await message.bot.download_file(file_info.file_path, file_bytes)
+#
+#             prompt = f"Действуй профессионально в роли ассистента компании {niche_name}. Проанализируй это фото. Если на нем есть дефекты, документы, зубы (в зависимости от ниши) - опиши их. Предложи решение или запиши на осмотр. Ответ должен быть кратким и по делу, не более 50-100 слов. ОТВЕЧАЙ ПРОСТЫМ ТЕКСТОМ БЕЗ MARKDOWN."
+#
+#             image_parts = [
+#                 {
+#                     "mime_type": "image/jpeg",
+#                     "data": file_bytes.getvalue()
+#                 }
+#             ]
+#
+#             answer_text = await generate_with_fallback(prompt, image_parts=[image_parts[0]])
+#         except Exception as e:
+#             answer_text = "❌ Ошибка при анализе изображения ИИ: " + str(e)
+#     else:
+#         answer_text = "Демонстрация зрения: ИИ распознал объекты на фото и готов выдать предварительную оценку стоимости."
+#
+#     await status_msg.delete()
+#     await update_showroom_media(message, "demo_vision", f"📷 <b>Результат анализа (Vision ИИ):</b>\n\n{answer_text}", InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 В меню ниши", callback_data="demo_niche_back")]]))
+#     await state.set_state(DemoStates.in_niche)
 
 # Feature 3: Voice Message Recognition
 @router.callback_query(F.data == "demo_voice")
@@ -684,52 +684,52 @@ async def show_menu_handler(message: types.Message):
     )
 
     markup = get_main_menu_keyboard()
-    await message.answer(welcome_text, reply_markup=markup, parse_mode="HTML")
+    await update_showroom_media(message, "main_menu_photo", welcome_text, markup)
 
 # Feature 2.5: Document Analysis (AI Parsing)
-@router.message(DemoStates.in_niche, F.document)
-async def handle_document(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    niche_name = data.get("niche_name", "Бизнес Архитектор")
-
-    doc = message.document
-
-    # We only process PDFs or Excel for demo
-    if not (doc.file_name.endswith('.pdf') or doc.file_name.endswith('.xlsx') or doc.file_name.endswith('.xls')):
-        await message.answer("❌ <b>Демо:</b> Пожалуйста, отправьте PDF документ или Excel файл для анализа (смета, спецификация, прайс).", parse_mode="HTML")
-        return
-
-    status_msg = await message.answer(
-        "🔄 <i>Запускаю умный парсинг документов...</i>\n\n"
-        "<code>[||||||||  ] 30% - Извлечение таблиц</code>",
-        parse_mode="HTML"
-    )
-    await message.bot.send_chat_action(chat_id=message.chat.id, action="typing")
-    await asyncio.sleep(1.5)
-
-    await status_msg.edit_text(
-        "🔄 <i>Запускаю умный парсинг документов...</i>\n\n"
-        "<code>[||||||||||||||] 80% - Сопоставление с базой CRM</code>",
-        parse_mode="HTML"
-    )
-    await asyncio.sleep(1.5)
-
-    import random
-    total = random.randint(15000, 150000)
-
-    ai_text = (
-        f"✅ <b>Смета успешно обработана!</b>\n\n"
-        f"<b>ИИ:</b> Я проанализировал файл <i>{doc.file_name}</i>. В нём найдено 14 позиций. \n"
-        f"Все они сопоставлены с вашей номенклатурой ({niche_name}).\n\n"
-        f"💰 <b>Предварительная сумма:</b> {total:,} ₽\n\n"
-        f"<i>В реальной системе здесь будет сгенерирован счет на оплату или коммерческое предложение в формате PDF, готовое к отправке клиенту.</i>"
-    ).replace(',', ' ')
-
-    await status_msg.delete()
-    await update_showroom_media(message, "demo_docs", ai_text, InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🎯 Оформить заявку", callback_data="demo_leave_lead")],
-            [InlineKeyboardButton(text="🔙 В меню ниши", callback_data="demo_niche_back")]
-        ]))
+# @router.message(DemoStates.in_niche, F.document)
+# async def handle_document(message: types.Message, state: FSMContext):
+#     data = await state.get_data()
+#     niche_name = data.get("niche_name", "Бизнес Архитектор")
+#
+#     doc = message.document
+#
+#     # We only process PDFs or Excel for demo
+#     if not (doc.file_name.endswith('.pdf') or doc.file_name.endswith('.xlsx') or doc.file_name.endswith('.xls')):
+#         await message.answer("❌ <b>Демо:</b> Пожалуйста, отправьте PDF документ или Excel файл для анализа (смета, спецификация, прайс).", parse_mode="HTML")
+#         return
+#
+#     status_msg = await message.answer(
+#         "🔄 <i>Запускаю умный парсинг документов...</i>\n\n"
+#         "<code>[||||||||  ] 30% - Извлечение таблиц</code>",
+#         parse_mode="HTML"
+#     )
+#     await message.bot.send_chat_action(chat_id=message.chat.id, action="typing")
+#     await asyncio.sleep(1.5)
+#
+#     await status_msg.edit_text(
+#         "🔄 <i>Запускаю умный парсинг документов...</i>\n\n"
+#         "<code>[||||||||||||||] 80% - Сопоставление с базой CRM</code>",
+#         parse_mode="HTML"
+#     )
+#     await asyncio.sleep(1.5)
+#
+#     import random
+#     total = random.randint(15000, 150000)
+#
+#     ai_text = (
+#         f"✅ <b>Смета успешно обработана!</b>\n\n"
+#         f"<b>ИИ:</b> Я проанализировал файл <i>{doc.file_name}</i>. В нём найдено 14 позиций. \n"
+#         f"Все они сопоставлены с вашей номенклатурой ({niche_name}).\n\n"
+#         f"💰 <b>Предварительная сумма:</b> {total:,} ₽\n\n"
+#         f"<i>В реальной системе здесь будет сгенерирован счет на оплату или коммерческое предложение в формате PDF, готовое к отправке клиенту.</i>"
+#     ).replace(',', ' ')
+#
+#     await status_msg.delete()
+#     await update_showroom_media(message, "demo_docs", ai_text, InlineKeyboardMarkup(inline_keyboard=[
+#             [InlineKeyboardButton(text="🎯 Оформить заявку", callback_data="demo_leave_lead")],
+#             [InlineKeyboardButton(text="🔙 В меню ниши", callback_data="demo_niche_back")]
+#         ]))
 
 @router.callback_query(F.data == "demo_docs")
 async def demo_docs(callback: types.CallbackQuery, state: FSMContext):
