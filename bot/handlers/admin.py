@@ -10,6 +10,28 @@ from bot.db import supabase
 
 router = Router()
 
+ADMIN_ID = 5178416366
+
+@router.message(F.from_user.id == ADMIN_ID, (F.photo | F.animation))
+async def capture_file_ids(message: types.Message):
+    if message.photo:
+        # Берем последнее фото из списка (самое высокое качество)
+        file_id = message.photo[-1].file_id
+        media_type = "STATIC PHOTO"
+    else:
+        # Берем ID анимации (mp4 без звука)
+        file_id = message.animation.file_id
+        media_type = "ANIMATION"
+
+    response = (
+        f"✅ <b>{media_type} DETECTED</b>\n\n"
+        f"ID для маппинга:\n<code>{file_id}</code>"
+    )
+
+    print(f"\n--- NEW FILE_ID CAPTURED ---\nType: {media_type}\nID: {file_id}\n---------------------------\n")
+    await message.answer(response, parse_mode="HTML")
+
+
 def is_admin(user_id: int) -> bool:
     admin_id = os.getenv("ADMIN_ID", "0")
     return str(user_id) == str(admin_id)

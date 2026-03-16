@@ -85,9 +85,9 @@ def main():
     dp.update.middleware(SmartStalkerMiddleware())
 
     # Регистрация роутеров
+    dp.include_router(admin.router)
     dp.include_router(base.router)
     dp.include_router(client.router)
-    dp.include_router(admin.router)
     dp.include_router(demo.router)
 
     dp.errors.register(global_error_handler)
