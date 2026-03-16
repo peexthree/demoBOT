@@ -59,7 +59,3 @@ async def start_cmd(message: types.Message, command: CommandObject):
 
     # If the user has a profile photo or we just send an HTML message (simulating a banner with rich text)
     await message.answer(welcome_text, reply_markup=markup, parse_mode="HTML")
-    await message.answer(
-        "Для расчета стоимости (Калькулятор Архитектора) используйте кнопку в меню ниже:",
-        reply_markup=get_twa_reply_keyboard()
-    )
