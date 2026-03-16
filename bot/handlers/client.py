@@ -32,7 +32,7 @@ async def web_app_data_handler(message: Message):
             item = parsed_data.get('payload')
 
             # Имитация отправки в CRM (Supabase)
-            save_lead_request({
+            await save_lead_request({
                 "username": message.from_user.username,
                 "user_id": message.from_user.id,
                 "item_title": item.get('title'),
@@ -40,11 +40,17 @@ async def web_app_data_handler(message: Message):
             })
 
             response_text = (
-                f"🎉 Вы успешно оформили заказ: <b>{item.get('title')}</b>.\n"
+                import html
+            f"🎉 Вы успешно оформили заказ: <b>{html.escape(str(item.get('title')))}</b>.\n"
                 f"💳 Стоимость: {item.get('price')} ₽\n\n"
                 "Ваша заявка моментально зафиксирована в CRM."
             )
-            await message.answer(response_text, parse_mode="HTML")
+            from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+            await message.answer(
+                response_text,
+                parse_mode="HTML",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню (/start)", callback_data="main_menu")]])
+            )
 
             # Уведомление администратора
             admin_id = os.getenv("ADMIN_ID")
@@ -53,8 +59,8 @@ async def web_app_data_handler(message: Message):
                     user_link = f"@{message.from_user.username}" if message.from_user.username else f"ID: {message.from_user.id}"
                     admin_text = (
                         f"🚨 <b>Новый заказ из TWA</b>\n\n"
-                        f"👤 Пользователь: {user_link}\n"
-                        f"📦 Товар: <b>{item.get('title')}</b>\n"
+                        f"👤 Пользователь: {html.escape(user_link)}\n"
+                        f"📦 Товар: <b>{html.escape(str(item.get('title')))}</b>\n"
                         f"💳 Стоимость: {item.get('price')} ₽"
                     )
                     await message.bot.send_message(admin_id, admin_text, parse_mode="HTML")
@@ -63,8 +69,13 @@ async def web_app_data_handler(message: Message):
 
         elif parsed_data.get('action') == 'broadcast':
             text = parsed_data.get('payload')
-            response_text = f"📢 <b>Демо-рассылка</b>\n\n{text}\n\n(Всем пользователям якобы ушло это сообщение)"
-            await message.answer(response_text, parse_mode="HTML")
+            response_text = f"📢 <b>Демо-рассылка</b>\n\n{html.escape(str(text))}\n\n(Всем пользователям якобы ушло это сообщение)"
+            from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+            await message.answer(
+                response_text,
+                parse_mode="HTML",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню (/start)", callback_data="main_menu")]])
+            )
 
         elif 'base' in parsed_data:
             base_id = parsed_data.get('base')
@@ -85,7 +96,7 @@ async def web_app_data_handler(message: Message):
             ).replace(',', ' ')
 
             # Сохранение лида (имитация)
-            save_lead_request({
+            await save_lead_request({
                 "username": message.from_user.username,
                 "user_id": message.from_user.id,
                 "item_title": "Запрос Архитектору: " + base_title,
@@ -93,7 +104,12 @@ async def web_app_data_handler(message: Message):
                 "metadata": {"modules": module_ids}
             })
 
-            await message.answer(response_text, parse_mode="HTML")
+            from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+            await message.answer(
+                response_text,
+                parse_mode="HTML",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню (/start)", callback_data="main_menu")]])
+            )
 
             # Уведомление администратора
             admin_id = os.getenv("ADMIN_ID")
