@@ -20,7 +20,7 @@ def get_main_menu_keyboard():
         [InlineKeyboardButton(text="🌟 ТОЧКИ РОСТА И ИННОВАЦИИ", callback_data="demo_innovations")],
         [InlineKeyboardButton(text="📑 ОЦЕНКА СТОИМОСТИ ВНЕДРЕНИЯ", callback_data="demo_pricing")],
         [InlineKeyboardButton(text="🤝 ПАРТНЕРСКАЯ ПРОГРАММА", callback_data="demo_referral")],
-        [InlineKeyboardButton(text="💬 СВЯЗАТЬСЯ С АРХИТЕКТОРОМ", url=f"tg://user?id={os.getenv('ADMIN_ID', '0')}")]
+        [InlineKeyboardButton(text="💬 СВЯЗАТЬСЯ С АРХИТЕКТОРОМ", web_app=types.WebAppInfo(url=os.getenv("WEBAPP_URL", "https://lid-flow.vercel.app/twa")))]
     ])
 
 def get_twa_reply_keyboard():
@@ -300,7 +300,7 @@ async def demo_pricing(callback: types.CallbackQuery):
     if nav_row:
         keyboard.append(nav_row)
 
-    keyboard.append([InlineKeyboardButton(text="💬 Обсудить проект", url=f"tg://user?id={{os.getenv('ADMIN_ID', '0')}}")])
+    keyboard.append([InlineKeyboardButton(text="💬 Обсудить проект", web_app=types.WebAppInfo(url=os.getenv("WEBAPP_URL", "https://lid-flow.vercel.app/twa")))])
     keyboard.append([InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")])
 
     markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
