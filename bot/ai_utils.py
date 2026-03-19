@@ -50,7 +50,7 @@ async def get_chat_history(user_id: int, limit: int = 10):
         logging.error(f"Failed to fetch chat history: {e}")
         return []
 
-async def generate_with_fallback(prompt, image_parts=None, file_part=None, user_id=None):
+async def generate_with_fallback(prompt, image_parts=None, file_part=None, user_id=None, system_prompt=None):
     if not os.getenv("API_KEY"):
         raise Exception("API_KEY not set")
 
@@ -64,7 +64,7 @@ async def generate_with_fallback(prompt, image_parts=None, file_part=None, user_
     for model_name in GEMINI_MODELS:
         try:
             logging.info(f"Attempting generate_content with model {model_name}")
-            model = genai.GenerativeModel(model_name)
+            model = genai.GenerativeModel(model_name, system_instruction=system_prompt) if system_prompt else genai.GenerativeModel(model_name)
 
             contents = history.copy()
             contents.append({"role": "user", "parts": [{"text": prompt}]})

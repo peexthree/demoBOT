@@ -979,7 +979,7 @@ async def demo_roi_check(message: types.Message, state: FSMContext):
         f"Будь убедительным, профессиональным."
     )
 
-    ai_response = await generate_with_fallback(user_prompt, system_prompt, user_id=message.from_user.id)
+    ai_response = await generate_with_fallback(user_prompt, system_prompt=system_prompt, user_id=message.from_user.id)
     if not ai_response:
         # Резервный расчет без AI
         lost_leads = int(leads * 0.2)
