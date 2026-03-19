@@ -2,7 +2,7 @@ import html
 import os
 import asyncio
 from aiogram import Router, F, types
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 
@@ -19,8 +19,10 @@ def get_main_menu_keyboard():
         [InlineKeyboardButton(text="🚀 Демонстрация работы с клиентами", callback_data="demo_client_path")],
         [InlineKeyboardButton(text="🌟 ТОЧКИ РОСТА И ИННОВАЦИИ", callback_data="demo_innovations")],
         [InlineKeyboardButton(text="📑 ОЦЕНКА СТОИМОСТИ ВНЕДРЕНИЯ", callback_data="demo_pricing")],
+        [InlineKeyboardButton(text="📈 ЛИЧНЫЙ КАБИНЕТ РУКОВОДИТЕЛЯ", callback_data="demo_dashboard")],
+        [InlineKeyboardButton(text="🧮 AI-КАЛЬКУЛЯТОР ROI (Окупаемость)", callback_data="demo_roi_start")],
         [InlineKeyboardButton(text="🤝 ПАРТНЕРСКАЯ ПРОГРАММА", callback_data="demo_referral")],
-        [InlineKeyboardButton(text="💬 СВЯЗАТЬСЯ С АРХИТЕКТОРОМ", web_app=types.WebAppInfo(url=os.getenv("WEBAPP_URL", "https://lid-flow.vercel.app/twa")))]
+        [InlineKeyboardButton(text="💬 СВЯЗАТЬСЯ С АРХИТЕКТОРОМ", callback_data="contact_architect")]
     ])
 
 def get_twa_reply_keyboard():
@@ -36,9 +38,9 @@ def get_twa_reply_keyboard():
 @router.callback_query(F.data == "main_menu")
 async def main_menu_handler(callback: types.CallbackQuery):
     await update_showroom_media(callback, "main_menu",
-        "🤖 <b>Eidos System</b> — цифровой шоурум Архитектора.\n\n"
-        "Вы находитесь в демо-версии премиальной системы автоматизации бизнеса.\n\n"
-        "Выберите раздел для изучения:", get_main_menu_keyboard())
+        "🤖 <b>Eidos System</b> — ваш премиальный цифровой шоурум.\n\n"
+        "Добро пожаловать в демо-версию интеллектуальной системы автоматизации бизнеса. Здесь вы на практике увидите, как технологии кратно увеличивают прибыль и снижают издержки.\n\n"
+        "Выберите интересующий вас раздел:", get_main_menu_keyboard())
     await callback.answer()
 
 #@router.message(F.text == "Скрыть меню")
@@ -590,9 +592,9 @@ INNOVATIONS_LIST = [
         "▪️ <b>Зачем:</b> Экономит часы рутинной работы менеджеров. Снижает риск человеческой ошибки при вводе сложных номенклатур."
     ),
     (
-        "4️⃣ <b>Интеграция с ERP/CRM (Реал-тайм склад)</b>\n"
-        "▪️ <b>Что это:</b> Клиент прямо в боте может проверить наличие товара на складе, статус отгрузки, трек-номер логистики или баланс взаиморасчетов.\n"
-        "▪️ <b>Зачем:</b> Снижает нагрузку на колл-центр до 60%. Клиенты получают нужную информацию 24/7 без ожидания ответа живого человека."
+        "4️⃣ <b>Бесшовная интеграция с ERP/CRM (1С, МойСклад)</b>\n"
+        "▪️ <b>Как работает:</b> Контрагент прямо в Telegram проверяет актуальные остатки на складе, статус отгрузки, трек-номер и баланс взаиморасчетов.\n"
+        "▪️ <b>Ценность:</b> Снижает нагрузку на клиентский сервис до 60%. Лояльность клиентов растет благодаря моментальному доступу к информации в режиме 24/7."
     ),
     (
         "5️⃣ <b>Предиктивная Аналитика Закупок</b>\n"
@@ -633,7 +635,7 @@ def get_innovations_text(page: int, per_page: int = 1):
 
     text = (
         "🌟 <b>Топ-10 B2B Инноваций для Вашего Бизнеса</b> 🌟\n\n"
-        "<i>Превратите Telegram в полноценную корпоративную экосистему и опередите конкурентов. Вот чем мы можем удивить ваших клиентов:</i>\n\n"
+        "<i>Превратите Telegram в полноценную цифровую экосистему и навсегда отстройтесь от конкурентов. Вот архитектурные решения, которые выведут ваш бизнес на новый уровень:</i>\n\n"
     )
 
     for item in items:
@@ -680,9 +682,9 @@ async def show_menu_handler(message: types.Message):
     from bot.handlers.demo import get_main_menu_keyboard
 
     welcome_text = (
-        "🤖 <b>Eidos System</b> — цифровой шоурум Архитектора.\n\n"
-        "Вы находитесь в демо-версии премиальной системы автоматизации бизнеса.\n\n"
-        "Выберите раздел для изучения:"
+        "🤖 <b>Eidos System</b> — ваш премиальный цифровой шоурум.\n\n"
+        "Добро пожаловать в демо-версию интеллектуальной системы автоматизации бизнеса. Здесь вы на практике увидите, как технологии кратно увеличивают прибыль и снижают издержки.\n\n"
+        "Выберите интересующий вас раздел:"
     )
 
     markup = get_main_menu_keyboard()
@@ -752,10 +754,10 @@ async def demo_referral(callback: types.CallbackQuery, state: FSMContext):
     ref_link = f"https://t.me/{bot_info.username}?start=ref_{user_id}"
 
     text = (
-        "🤝 <b>Партнерская сеть (CPA-модель)</b>\n\n"
-        "<i>Как превратить лояльных клиентов в своих агентов по продажам? Настройте автоматический трекинг.</i>\n\n"
-        "Отправьте вашу уникальную ссылку партнерам по бизнесу. Если по вашей рекомендации заключается договор на внедрение системы, вы получаете <b>10% от суммы чека</b> (агентская комиссия).\n\n"
-        "Эти средства можно использовать как скидку на разработку бота или дополнительных модулей для вашего актива.\n\n"
+        "🤝 <b>Реферальная система (CPA-модель)</b>\n\n"
+        "<i>Превратите лояльных клиентов в амбассадоров вашего бренда с помощью автоматического трекинга рекомендаций.</i>\n\n"
+        "Отправьте уникальную ссылку вашим партнерам. Если по вашей рекомендации заключается договор на внедрение системы Eidos, вы гарантированно получаете <b>агентскую комиссию 10%</b> от суммы контракта.\n\n"
+        "Полученные дивиденды можно реинвестировать в разработку дополнительных модулей для вашего цифрового актива или вывести любым удобным способом.\n\n"
         f"🔗 <b>Ваша персональная ссылка:</b>\n<code>{ref_link}</code>\n\n"
         "<i>(Нажмите на ссылку, чтобы скопировать)</i>"
     )
@@ -763,3 +765,250 @@ async def demo_referral(callback: types.CallbackQuery, state: FSMContext):
     await update_showroom_media(callback, "demo_referral",
         text, InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]]))
     await callback.answer()
+
+# --- Связь с архитектором (прямая) ---
+@router.callback_query(F.data == "contact_architect")
+async def contact_architect_start(callback: types.CallbackQuery, state: FSMContext):
+    text = (
+        "🏛 <b>Связь с Архитектором Системы</b>\n\n"
+        "Пожалуйста, кратко опишите вашу бизнес-задачу или задайте интересующий вопрос.\n\n"
+        "<i>Архитектор лично проанализирует запрос и свяжется с вами для обсуждения концепции и точек роста вашего бизнеса.</i>\n\n"
+        "✍️ <i>Жду ваше сообщение в чате... (Нажмите «Отменить», чтобы вернуться в меню)</i>"
+    )
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="❌ Отменить", callback_data="main_menu")]
+    ])
+
+    await update_showroom_media(callback, "demo_innovations", text, markup)
+    await state.set_state(DemoStates.waiting_for_architect_message)
+    await callback.answer()
+
+@router.message(DemoStates.waiting_for_architect_message, F.text)
+async def contact_architect_receive(message: types.Message, state: FSMContext):
+    user_msg = message.text
+    user_link = f"@{message.from_user.username}" if message.from_user.username else f"ID: {message.from_user.id}"
+    full_name = message.from_user.full_name or "Без имени"
+
+    admin_id = os.getenv("ADMIN_ID", "5178416366") # дефолтный айди для надежности, если env пуст
+
+    admin_text = (
+        "🔔 <b>Новый прямой запрос к Архитектору!</b>\n\n"
+        f"👤 <b>Клиент:</b> {html.escape(full_name)} ({html.escape(user_link)})\n"
+        f"💬 <b>Сообщение:</b>\n"
+        f"<i>{html.escape(user_msg)}</i>"
+    )
+
+    try:
+        await message.bot.send_message(admin_id, admin_text, parse_mode="HTML")
+    except Exception as e:
+        import logging
+        logging.error(f"Failed to send direct message to architect: {e}")
+
+    # Возвращаем пользователя в главное меню
+    await state.clear()
+
+    confirm_text = (
+        "✅ <b>Запрос успешно доставлен.</b>\n\n"
+        "Ваш персональный Архитектор уже получил сообщение и вернется к вам с ответом в ближайшее время.\n\n"
+        "🤖 <b>Eidos System</b> — ваш премиальный цифровой шоурум.\n\n"
+        "Добро пожаловать в демо-версию интеллектуальной системы автоматизации бизнеса. Здесь вы на практике увидите, как технологии кратно увеличивают прибыль и снижают издержки.\n\n"
+        "Выберите интересующий вас раздел:"
+    )
+    from bot.handlers.demo import get_main_menu_keyboard
+
+    # Сначала удаляем сообщение пользователя, чтобы чат оставался чистым (шоурум подход)
+    try:
+        await message.delete()
+    except:
+        pass
+
+    await update_showroom_media(message, "main_menu_photo", confirm_text, get_main_menu_keyboard())
+
+# --- Feature 5: Pseudo-Dashboard (Личный Кабинет Руководителя) ---
+@router.callback_query(F.data == "demo_dashboard")
+async def demo_dashboard(callback: types.CallbackQuery):
+    full_name = callback.from_user.full_name or "Руководитель"
+
+    # Мы генерируем красивый текст-псевдографику.
+    # В реальном проекте тут генерируется Pillow картинка с диаграммой matplotlib
+    # или подтягивается дашборд из Supabase + TWA.
+
+    text = (
+        f"📊 <b>Аналитический Дашборд: {html.escape(full_name)}</b>\n\n"
+        "<i>Именно так ваши инвесторы и партнеры могут видеть метрики бизнеса в Telegram 24/7. Данные подтягиваются напрямую из вашей 1С или CRM (API).</i>\n\n"
+        "💵 <b>Выручка (Текущий месяц):</b> 12,450,000 ₽ <tg-spoiler>+14% 🟢</tg-spoiler>\n"
+        "📉 <b>Издержки на ФОТ (Сейлзы):</b> -35% 🟢 <i>(Благодаря AI)</i>\n"
+        "🎯 <b>Конверсия в сделку:</b> 18.2% 📈\n\n"
+        "<b>Воронка продаж:</b>\n"
+        "▪️ Новые лиды: 1450\n"
+        "▪️ Квалифицировано ИИ: 1200\n"
+        "▪️ Выставлено счетов (Авто): 840\n"
+        "▪️ Оплачено: 260\n\n"
+        "<code>[||||||||||||||||||  ] 85% План выполнен</code>\n\n"
+        "💡 <b>Инсайт от Нейросети:</b> <i>Замечен спад оплат в сегменте B2C. Рекомендую запустить автоматическую SMS-рассылку со скидкой 5% по отказам. Запустить? (Y/N)</i>"
+    )
+
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⚡ Запустить AI-Сценарий (Демо)", callback_data="demo_dashboard_magic")],
+        [InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]
+    ])
+
+    # Используем demo_vision как картинку (там красивый AI визуал)
+    await update_showroom_media(callback, "demo_vision", text, markup)
+    await callback.answer()
+
+@router.callback_query(F.data == "demo_dashboard_magic")
+async def demo_dashboard_magic(callback: types.CallbackQuery):
+    text = (
+        "🚀 <b>Сценарий активирован!</b>\n\n"
+        "<i>Магия автоматизации в действии:</i>\n"
+        "1. Нейросеть проанализировала 340 отказников.\n"
+        "2. Сгенерировала 340 уникальных писем с персональным оффером.\n"
+        "3. Отправила их через WhatsApp/Telegram API.\n\n"
+        "💸 <b>Прогноз возврата:</b> +1.2 млн ₽ в течение 48 часов.\n\n"
+        "<i>Вы только что заработали деньги нажатием одной кнопки, пока пьете кофе. Хотите такую же систему? Нажмите «Связаться с Архитектором».</i>"
+    )
+
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💬 СВЯЗАТЬСЯ С АРХИТЕКТОРОМ", callback_data="contact_architect")],
+        [InlineKeyboardButton(text="🔙 Назад к Дашборду", callback_data="demo_dashboard")]
+    ])
+
+    await update_showroom_media(callback, "demo_vision", text, markup)
+    await callback.answer()
+
+# --- Feature 6: Interactive AI ROI Calculator ---
+from bot.states import ROICalcStates
+
+@router.callback_query(F.data == "demo_roi_start")
+async def demo_roi_start(callback: types.CallbackQuery, state: FSMContext):
+    text = (
+        "🧮 <b>Интерактивный AI-Калькулятор (ROI)</b>\n\n"
+        "<i>Давайте посчитаем, сколько денег вы теряете на рутине и сколько может принести внедрение бота.</i>\n\n"
+        "🔹 <b>Шаг 1 из 2:</b>\n"
+        "Сколько в среднем новых заявок (лидов) в месяц получает ваш бизнес?\n\n"
+        "<i>(Ответьте цифрой в чат, например: 150 или нажмите Отмена)</i>"
+    )
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="❌ Отменить расчет", callback_data="main_menu")]
+    ])
+
+    await update_showroom_media(callback, "demo_calculator", text, markup)
+    await state.set_state(ROICalcStates.waiting_for_leads)
+    await callback.answer()
+
+@router.message(ROICalcStates.waiting_for_leads, F.text)
+async def demo_roi_leads(message: types.Message, state: FSMContext):
+    try:
+        leads = int(''.join(filter(str.isdigit, message.text)))
+        if leads <= 0:
+            raise ValueError
+    except ValueError:
+        await message.answer("❌ Пожалуйста, введите количество лидов числом (например, 150):")
+        return
+
+    await state.update_data(leads=leads)
+
+    # Удаляем сообщение юзера
+    try:
+        await message.delete()
+    except:
+        pass
+
+    text = (
+        "🧮 <b>Шаг 2 из 2: Ваш средний чек</b>\n\n"
+        f"Отлично, <b>{leads} лидов/мес.</b>\n"
+        "Теперь введите ваш примерный средний чек (в рублях).\n\n"
+        "<i>(Ответьте цифрой, например: 5000)</i>"
+    )
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="❌ Отменить расчет", callback_data="main_menu")]
+    ])
+
+    await update_showroom_media(message, "demo_calculator", text, markup)
+    await state.set_state(ROICalcStates.waiting_for_check)
+
+@router.message(ROICalcStates.waiting_for_check, F.text)
+async def demo_roi_check(message: types.Message, state: FSMContext):
+    try:
+        check = int(''.join(filter(str.isdigit, message.text)))
+        if check <= 0:
+            raise ValueError
+    except ValueError:
+        await message.answer("❌ Пожалуйста, введите средний чек числом (например, 5000):")
+        return
+
+    data = await state.get_data()
+    leads = data.get("leads", 100)
+    await state.clear()
+
+    try:
+        await message.delete()
+    except:
+        pass
+
+    # Показываем статус загрузки
+    status_text = "🔄 <i>Нейросеть Eidos System генерирует финансовый прогноз...</i>\n\n<code>[||||||||||        ] 55% Расчет LTV</code>"
+    markup = InlineKeyboardMarkup(inline_keyboard=[])
+
+    # Чтобы обновить showroom, отправляем новое состояние.
+    # Так как message.text был получен напрямую, update_showroom_media создаст новое сообщение
+    # Мы сохраняем старое сообщение (от бота) не можем, так как нет callback.
+    # Поэтому просто отправляем новое сообщение:
+
+    from bot.showroom import SHOWROOM_FILES
+    file_id = SHOWROOM_FILES.get("demo_calculator")
+
+    try:
+        msg = await message.answer_photo(photo=file_id, caption=status_text, parse_mode="HTML")
+    except Exception as e:
+        msg = await message.answer(status_text, parse_mode="HTML")
+
+    await message.bot.send_chat_action(chat_id=message.chat.id, action="typing")
+    await asyncio.sleep(2)
+
+    # Формируем промпт для Gemini
+    system_prompt = "Ты — финансовый аналитик и маркетолог в B2B IT-студии Архитектора."
+    user_prompt = (
+        f"Клиент ввел: {leads} лидов в месяц и средний чек {check} руб. \n\n"
+        f"Сделай красивый B2B-анализ в формате Telegram HTML (строго до 100 слов).\n"
+        f"Покажи:\n"
+        f"1. Сколько в месяц он теряет денег из-за того, что менеджеры сливают 20% лидов из-за человеческого фактора (посчитай математику).\n"
+        f"2. Как AI-бот спасет эти деньги (вернет эти 20%).\n"
+        f"3. Оцени срок окупаемости системы автоматизации за 500,000 руб (ROI).\n"
+        f"Будь убедительным, профессиональным."
+    )
+
+    ai_response = await generate_with_fallback(user_prompt, system_prompt)
+    if not ai_response:
+        # Резервный расчет без AI
+        lost_leads = int(leads * 0.2)
+        lost_money = lost_leads * check
+        ai_response = (
+            f"<b>Финансовая модель вашей компании</b>\n\n"
+            f"Обычно менеджеры теряют до 20% лидов (забыли перезвонить, долго отвечали).\n"
+            f"📉 <b>Упущенная выгода:</b> {lost_money:,} ₽ / мес. ({lost_leads} заявок).\n\n"
+            f"Робот обрабатывает 100% лидов моментально 24/7. Внедрив систему за 500 000 ₽, вы окупите её всего за {max(1, int(500000/lost_money))} месяцев.\n\n"
+            f"<i>Это математика, с которой сложно спорить.</i>"
+        ).replace(',', ' ')
+    else:
+        # Чистим ответ от возможных markdown ```html
+        ai_response = ai_response.replace("```html", "").replace("```", "").strip()
+
+    final_text = (
+        "📊 <b>Результат Нейро-Анализа вашего бизнеса:</b>\n\n"
+        f"{ai_response}\n\n"
+        "<i>Хотите забрать эти деньги с рынка быстрее конкурентов?</i>"
+    )
+
+    final_markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💬 ОБСУДИТЬ ВНЕДРЕНИЕ", callback_data="contact_architect")],
+        [InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]
+    ])
+
+    try:
+        await msg.delete()
+    except:
+        pass
+
+    await update_showroom_media(message, "demo_calculator", final_text, final_markup)
