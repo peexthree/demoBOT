@@ -1,0 +1,14 @@
+--- bot/ai_utils.py
++++ bot/ai_utils.py
+@@ -82,10 +82,6 @@
+                 asyncio.create_task(save_chat_history(user_id, "user", prompt))
+                 asyncio.create_task(save_chat_history(user_id, "model", response.text))
+             return response.text
+-
+-            if user_id:
+-                await save_chat_history(user_id, "user", prompt)
+-                await save_chat_history(user_id, "model", response.text)
+-            return response.text
+
+
+         except Exception as e:
