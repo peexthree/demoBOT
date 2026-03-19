@@ -118,7 +118,7 @@ async def handle_ai_question(message: types.Message, state: FSMContext):
     if API_KEY:
         try:
              prompt = f"Действуй профессионально в роли ассистента компании {niche_name}. Ответь клиенту на вопрос: {message.text}. Если это запрос на запись или покупку - соглашайся и проси оставить контакт. История: {history}. Ответ должен быть кратким и по делу, не более 50-100 слов. ОТВЕЧАЙ ПРОСТЫМ ТЕКСТОМ БЕЗ MARKDOWN (без звездочек)."
-             answer_text = await generate_with_fallback(prompt)
+             answer_text = await generate_with_fallback(prompt, user_id=message.from_user.id)
 
              # Save history
              history += f" User: {html.escape(message.text)}. You: {html.escape(answer_text)}."
@@ -352,7 +352,7 @@ async def handle_photo(message: types.Message, state: FSMContext):
                 }
             ]
 
-            answer_text = await generate_with_fallback(prompt, image_parts=[image_parts[0]])
+            answer_text = await generate_with_fallback(prompt, image_parts=[image_parts[0]], user_id=message.from_user.id)
         except Exception as e:
             answer_text = "❌ Ошибка при анализе изображения ИИ: " + str(e)
     else:
@@ -400,7 +400,7 @@ async def handle_voice(message: types.Message, state: FSMContext):
 
                 prompt = f"Ты экспертный ассистент компании {niche_name}. Прослушай аудиосообщение клиента. Дай четкий, полезный ответ, подходящий для ниши (согласись на запись или проконсультируй по услугам). Ответ должен быть кратким и по делу, не более 50-100 слов. ОТВЕЧАЙ ПРОСТЫМ ТЕКСТОМ БЕЗ MARKDOWN."
 
-                answer_text = await generate_with_fallback(prompt, file_part=uploaded_file)
+                answer_text = await generate_with_fallback(prompt, file_part=uploaded_file, user_id=message.from_user.id)
 
                 # Cleanup the file from Gemini
                 uploaded_file.delete()
@@ -501,7 +501,7 @@ async def demo_calculator(callback: types.CallbackQuery, state: FSMContext):
         if API_KEY:
              try:
                  prompt = f"Ты ИИ-ассистент компании {niche_name}. Клиент прошел квиз. Вопрос 1: {niche_q['q1']} Ответ: {text_ans1}. Вопрос 2: {niche_q['q2']} Ответ: {text_ans2}. Сделай примерный расчет стоимости и времени, и предложи записаться/оставить заявку. Напиши 1 короткий, привлекательный абзац. ОТВЕЧАЙ ПРОСТЫМ ТЕКСТОМ БЕЗ MARKDOWN."
-                 ai_text = await generate_with_fallback(prompt)
+                 ai_text = await generate_with_fallback(prompt, user_id=callback.from_user.id)
              except Exception as e:
                  ai_text = f"Ваша предварительная стоимость: от 15 000 до 35 000 рублей. ({str(e)})"
         else:
@@ -979,7 +979,7 @@ async def demo_roi_check(message: types.Message, state: FSMContext):
         f"Будь убедительным, профессиональным."
     )
 
-    ai_response = await generate_with_fallback(user_prompt, system_prompt)
+    ai_response = await generate_with_fallback(user_prompt, system_prompt, user_id=message.from_user.id)
     if not ai_response:
         # Резервный расчет без AI
         lost_leads = int(leads * 0.2)
