@@ -124,7 +124,7 @@ async def handle_ai_question(message: types.Message, state: FSMContext):
              history += f" User: {html.escape(message.text)}. You: {html.escape(answer_text)}."
              await state.update_data(history=history[-1000:])
         except Exception as e:
-             answer_text = "❌ Ошибка при обращении к ИИ-серверу: " + str(e)
+             answer_text = "❌ Ошибка при обращении к ИИ-серверу: " + str(e).replace("<", "&lt;").replace(">", "&gt;")
     else:
         await asyncio.sleep(2)
         answer_text = f"В реальности ИИ проанализирует запрос '{message.text}' для бизнеса {niche_name} и выдаст ответ, подводящий к продаже или записи."
@@ -354,7 +354,7 @@ async def handle_photo(message: types.Message, state: FSMContext):
 
             answer_text = await generate_with_fallback(prompt, image_parts=[image_parts[0]], user_id=message.from_user.id)
         except Exception as e:
-            answer_text = "❌ Ошибка при анализе изображения ИИ: " + str(e)
+            answer_text = "❌ Ошибка при анализе изображения ИИ: " + str(e).replace("<", "&lt;").replace(">", "&gt;")
     else:
         answer_text = "Демонстрация зрения: ИИ распознал объекты на фото и готов выдать предварительную оценку стоимости."
 
@@ -409,7 +409,7 @@ async def handle_voice(message: types.Message, state: FSMContext):
                 os.unlink(tmp_path)
 
         except Exception as e:
-            answer_text = "❌ Ошибка при распознавании голоса ИИ: " + str(e)
+            answer_text = "❌ Ошибка при распознавании голоса ИИ: " + str(e).replace("<", "&lt;").replace(">", "&gt;")
     else:
         answer_text = "🎵 Я успешно распознал ваше аудио (в рабочей версии здесь будет точная транскрибация). ИИ понял интент и сформировал ответ."
 
@@ -503,7 +503,7 @@ async def demo_calculator(callback: types.CallbackQuery, state: FSMContext):
                  prompt = f"Ты ИИ-ассистент компании {niche_name}. Клиент прошел квиз. Вопрос 1: {niche_q['q1']} Ответ: {text_ans1}. Вопрос 2: {niche_q['q2']} Ответ: {text_ans2}. Сделай примерный расчет стоимости и времени, и предложи записаться/оставить заявку. Напиши 1 короткий, привлекательный абзац. ОТВЕЧАЙ ПРОСТЫМ ТЕКСТОМ БЕЗ MARKDOWN."
                  ai_text = await generate_with_fallback(prompt, user_id=callback.from_user.id)
              except Exception as e:
-                 ai_text = f"Ваша предварительная стоимость: от 15 000 до 35 000 рублей. ({str(e)})"
+                 ai_text = f"Ваша предварительная стоимость: от 15 000 до 35 000 рублей. ({str(e).replace('<', '&lt;').replace('>', '&gt;')})"
         else:
              ai_text = f"ИИ проанализировал ваши ответы ({text_ans1}, {text_ans2}) и подготовил бы персональное коммерческое предложение с ценой и сроками."
 

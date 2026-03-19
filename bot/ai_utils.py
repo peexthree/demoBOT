@@ -67,12 +67,14 @@ async def generate_with_fallback(prompt, image_parts=None, file_part=None, user_
             model = genai.GenerativeModel(model_name, system_instruction=system_prompt) if system_prompt else genai.GenerativeModel(model_name)
 
             contents = history.copy()
-            contents.append({"role": "user", "parts": [{"text": prompt}]})
+            user_parts = [{"text": prompt}]
 
             if image_parts:
-                contents.extend(image_parts)
+                user_parts.extend(image_parts)
             if file_part:
-                contents.append(file_part)
+                user_parts.append(file_part)
+
+            contents.append({"role": "user", "parts": user_parts})
 
             response = await model.generate_content_async(contents)
 
