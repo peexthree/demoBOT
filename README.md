@@ -1,111 +1,102 @@
-# Eidos System — ИИ-Маркетолог (SaaS MVP 1.0)
+# Eidos System — Демонстрационный проект
 
-Добро пожаловать в проект Eidos! Это интеллектуальный B2B ассистент маркетолога, работающий внутри Telegram Mini App.
-
----
-
-## 🚀 Описание продукта
-Это SaaS платформа (Фримиум + PRO), которая:
-- Собирает цифровой профиль бизнеса по ссылке (Magic Link).
-- Включает 4 слоя инструментов (Контент, Разведка, Growth OS, Отчеты).
-- Использует цепочку ИИ-Агентов (Аналитик -> Критик -> Упаковщик) на базе Gemini.
-- Кэширует запросы через векторную базу `pgvector` в Supabase для экономии токенов.
-- Генерирует PDF отчеты с водяными знаками (кириллица, ReportLab).
-- Имеет стильный UI в духе Gothic Tech-RPG (Tailwind CSS, глитч-эффекты).
+Премиальный Telegram бот и TWA (Telegram Web App) витрина для тестирования системы "Я — Клиент" и "Я — Владелец бизнеса", с теневым трекингом действий пользователя.
 
 ---
 
 ## 🛠 Архитектура
 
-- **Бэкенд (bot)**: Python, `aiogram` 3.x, `aiohttp` (как API сервер для TWA).
-- **Фронтенд (webapp)**: TWA SDK, Vite, React, `Zustand` + CloudStorage, `React Query`, `Tailwind CSS`.
-- **База Данных**: Supabase (PostgreSQL) + `pgvector`.
-- **ИИ**: Google Gemini API.
-- **Аналитика**: PostHog.
-- **Платежи**: Telegram Stars / ЮKassa.
+- **Бэкенд (bot)**: Чистый Python, aiogram 3.x, FSM, Middlewares.
+- **Фронтенд (webapp)**: TWA SDK, Vite, React, Zustand, React Query, Tailwind CSS. Стилизация в Gothic Tech-RPG / Cyberpunk (backdrop-blur, clip-path).
+- **База Данных**: Supabase (PostgreSQL).
+- **Деплой**: Render.com (через `render.yaml`).
 
 ---
 
-## 📦 Инструкция по развертыванию (Для Владельца)
+## 🚀 Деплой на Render
 
-Чтобы запустить проект с нуля, следуйте этой пошаговой инструкции. Я постарался расписать всё максимально подробно.
+Для развертывания системы используется инфраструктурный файл `render.yaml`.
+Вам потребуется подключить этот GitHub-репозиторий в панель Render (Blueprint Deploy).
 
-### ШАГ 1. Настройка Базы Данных (Supabase)
+### Секретные переменные окружения (Environment Variables)
 
-Система использует Supabase как единую точку истины.
+В Render (в настройках Worker сервиса `eidos-bot`) необходимо добавить следующие секреты:
 
-1. Зарегистрируйтесь на [Supabase](https://supabase.com) и создайте новый проект.
-2. Перейдите в раздел **SQL Editor** (слева в меню).
-3. Нажмите "New Query".
-4. Откройте файл `database.sql` из корня этого проекта, скопируйте весь текст оттуда и вставьте в окно SQL Editor.
-5. Нажмите кнопку **Run** (Выполнить).
-*Поздравляю, таблицы созданы, расширение векторного поиска `pgvector` включено, а политики безопасности RLS настроены!*
-6. Перейдите в раздел **Project Settings -> API** и скопируйте две вещи: `Project URL` и `anon public API Key`. Они понадобятся на Шаге 3.
+1. `BOT_TOKEN`: Токен вашего бота (получите у [@BotFather](https://t.me/BotFather)).
+2. `ADMIN_ID`: Ваш Telegram ID (цифры), куда будут приходить скрытые алерты ("🔥 Лид @username сейчас тестирует админ-панель"). Получите, например, у @getmyid_bot.
+3. `WEBAPP_URL`: Ссылка на ваш задеплоенный статический сайт (например: `https://lid-flow.vercel.app/twa`).
+4. `SUPABASE_URL`: Ссылка на ваш проект Supabase (см. раздел "База Данных").
+5. `SUPABASE_KEY`: Ваш анонимный `anon` ключ Supabase.
 
-### ШАГ 2. Получение ключей для ИИ и Платежей
+> **Примечание:** Если `SUPABASE_URL` или `SUPABASE_KEY` не указаны, бот запустится в моковом режиме (заявки не будут сохраняться, только логироваться в консоли).
 
-1. **Google Gemini**: Перейдите в Google AI Studio (aistudio.google.com), создайте новый API Key. Это будет ваш `GEMINI_API_KEY`.
-2. **Telegram Bot**: Зайдите к [@BotFather](https://t.me/BotFather) в Telegram. Создайте нового бота, скопируйте его токен (это `BOT_TOKEN`).
-   - *Для платежей Telegram Stars:* В BotFather перейдите в настройки бота -> Payments, выберите Telegram Stars. Оставьте `STARS_TOKEN` пустым в `.env`, если используете Stars по умолчанию, или впишите токен ЮKassa.
-3. **PostHog (Аналитика)**: Зарегистрируйтесь на posthog.com, создайте проект и скопируйте `Project API Key` (начинается на `phc_...`).
+---
 
-### ШАГ 3. Настройка переменных окружения (.env)
+## 🗄 Настройка Базы Данных (Supabase)
 
-Если вы запускаете бота локально, создайте файл `.env` в папке `bot`.
-Если деплоите на **Render.com**, добавьте эти переменные в разделе `Environment` вашего сервиса:
+Система использует облачную БД [Supabase](https://supabase.com).
+Чтобы бот мог корректно сохранять лиды, вам необходимо:
 
-```env
-BOT_TOKEN=7777777777:ВашТокенОтBotFather
-ADMIN_ID=123456789 # Ваш Telegram ID для получения скрытых уведомлений
-WEBAPP_URL=https://ваша-ссылка-на-фронтенд-twa.com
-SUPABASE_URL=https://xxxxxxxxxxxxxxxxx.supabase.co
-SUPABASE_KEY=eyJhb...ВашAnonКлюч
-GEMINI_API_KEY=AIzaSy...ВашКлючОтGoogle
-POSTHOG_API_KEY=phc_...ВашКлючPostHog
+1. Зарегистрироваться в Supabase и создать новый проект.
+2. Перейти в **SQL Editor** (слева в меню панели).
+3. Выполнить следующий SQL запрос для создания таблицы `leads`:
+
+```sql
+CREATE TABLE public.leads (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    username TEXT,
+    user_id BIGINT,
+    item_title TEXT,
+    item_price TEXT
+);
+
+-- Настройка политик безопасности (RLS)
+ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
+
+-- Разрешаем чтение и запись (для демо-проекта)
+CREATE POLICY "Enable read access for all users" ON public.leads FOR SELECT USING (true);
+CREATE POLICY "Enable insert for all users" ON public.leads FOR INSERT WITH CHECK (true);
 ```
 
-### ШАГ 4. Деплой Фронтенда (TWA)
+4. Скопировать `Project URL` и `anon public API Key` (в разделе Settings -> API) и вставить их в Render как переменные `SUPABASE_URL` и `SUPABASE_KEY`.
 
-Фронтенд лежит в папке `webapp`. Рекомендуется задеплоить его на **Vercel** или **Render**:
+---
 
-1. Откройте папку `webapp` в терминале.
-2. Запустите `npm install && npm run build`.
-3. Загрузите папку `dist` на хостинг (или подключите Vercel к вашему Github репозиторию, указав папку `webapp` как корневую).
-4. Скопируйте полученную ссылку (например, `https://eidos-twa.vercel.app`) и вставьте её в переменную `WEBAPP_URL` бота.
-5. Зайдите в @BotFather, выберите вашего бота -> Bot Settings -> Menu Button -> Configure Web app -> Вставьте эту же ссылку. Теперь по кнопке "Menu" слева от поля ввода будет открываться ваше приложение.
+## 💻 Локальный запуск (Разработка)
 
-### ШАГ 5. Шрифты для PDF (Кириллица)
+### Фронтенд (TWA)
+```bash
+cd webapp
+npm install
+npm run dev # (Не забудьте запустить это в фоне или в отдельном терминале)
+```
 
-Бэкенд умеет генерировать стильные PDF-отчеты. Чтобы русский текст отображался корректно (а не черными квадратами), боту нужны шрифты TTF.
-
-1. Запустите скрипт скачивания: `python bot/download_font.py`. Он скачает шрифты Roboto с Github и положит их в `bot/fonts/`.
-2. При деплое на Render убедитесь, что эта папка комитится в Github вместе с вашим кодом.
-
-### ШАГ 6. Запуск Бота
-
-**Локально:**
+### Бэкенд (Bot)
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 pip install -r bot/requirements.txt
+# Создайте файл .env внутри папки bot с необходимыми секретами
 python bot/main.py
 ```
 
-**На Render:**
-Убедитесь, что в файле `render.yaml` прописана команда запуска: `python bot/main.py` и указан путь к `requirements.txt`.
-
 ---
 
-## 🎨 Как работает система (Сценарий пользователя)
+### Обновление (Цифровой Шоурум Архитектора)
+Для работы системы аналитики кликов и глубокого трекинга `events` (Smart Stalker), вам потребуется добавить еще одну таблицу в базу данных Supabase:
 
-1. Юзер заходит в бота и пишет `/start`.
-2. Бот предлагает прислать ссылку на проект (Magic Link).
-3. Юзер кидает ссылку (например, `https://t.me/durov`). ИИ парсит канал и сохраняет "Профиль Бизнеса" в Supabase.
-4. Юзер открывает приложение (TWA). Видит стильный Cyberpunk интерфейс.
-5. Нажимает "Рекламный креатив".
-6. Запрос уходит на бэкенд (`aiohttp`). Бэкенд проверяет векторный кэш `pgvector`. Если ответа нет - запускает агентов (Аналитик -> Критик -> Упаковщик) в фоне, чтобы бот не завис.
-7. Юзер видит глитч-анимацию загрузки во фронтенде.
-8. Когда ИИ закончил, результат сохраняется в кэш БД, а юзеру приходит пуш в Telegram: "Задача готова".
-9. Если юзер нажмет на "Разведка конкурентов" (Слой 2), он увидит Размытый Пейволл (Blurred Paywall). Кнопка "Оформить PRO" вызовет окно оплаты Telegram Stars прямо в TWA!
+```sql
+CREATE TABLE public.events (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    user_id BIGINT,
+    username TEXT,
+    action TEXT
+);
 
-Удачного запуска и высоких конверсий! 🚀
+ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Enable insert for all users" ON public.events FOR INSERT WITH CHECK (true);
+```
+
+Также необходимо добавить переменную окружения `API_KEY` в Render для бота, если вы хотите, чтобы работал "ИИ-Консультант (Демо)" на базе модели Google Gemini.
