@@ -1,0 +1,73 @@
+--- bot/main.py
++++ bot/main.py
+@@ -10,6 +10,7 @@
+ from aiogram.client.session.middlewares.base import BaseRequestMiddleware
+ from aiogram.exceptions import TelegramConflictError
+ from aiogram.client.default import DefaultBotProperties
++import json
+ from aiohttp import web
+ from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
+ from dotenv import load_dotenv
+@@ -21,6 +22,46 @@
+ async def health_check(request):
+     return web.Response(text="OK")
+
++async def api_crm(request):
++    from bot.db import supabase
++    import logging
++    try:
++        if not supabase:
++            return web.json_response({"error": "No database connection"}, status=500)
++
++        # Выполняем асинхронно, чтобы не блокировать aiohttp
++        import asyncio
++
++        def fetch_data():
++            leads = supabase.table("leads").select("*").order("created_at", desc=True).limit(10).execute()
++            return leads.data
++
++        data = await asyncio.to_thread(fetch_data)
++
++        total_revenue = 0
++        formatted_leads = []
++
++        for idx, row in enumerate(data):
++            try:
++                # В нашей БД цена лежит в item_price, иногда это строка
++                price_val = str(row.get('item_price', '0')).replace(' ', '').replace('₽', '')
++                price = int(price_val)
++                total_revenue += price
++            except ValueError:
++                price = 0
++
++            formatted_leads.append({
++                "id": row.get('id'),
++                "name": row.get('username') or f"User {row.get('user_id')}",
++                "action": row.get('item_title', 'Запрос'),
++                "amount": f"₽ {price:,}".replace(',', ' '),
++                "status": "new" if idx % 3 == 0 else "active" if idx % 3 == 1 else "completed",
++                "time": row.get('created_at', '')[:10] # Просто дата для демо
++            })
++
++        return web.json_response({"totalRevenue": total_revenue, "leadsCount": len(data), "leads": formatted_leads}, headers={"Access-Control-Allow-Origin": "*"})
++    except Exception as e:
++        logging.error(f"CRM API Error: {e}")
++        return web.json_response({"error": str(e)}, status=500, headers={"Access-Control-Allow-Origin": "*"})
+
+ class PollingConflictMiddleware(BaseRequestMiddleware):
+     async def __call__(self, make_request, bot, method):
+@@ -83,6 +124,14 @@
+     logging.info("Starting bot...")
+
+     app = web.Application()
++    async def handle_options(request):
++        return web.Response(headers={
++            "Access-Control-Allow-Origin": "*",
++            "Access-Control-Allow-Methods": "GET, OPTIONS",
++            "Access-Control-Allow-Headers": "Content-Type",
++        })
++    app.router.add_options("/api/crm", handle_options)
++    app.router.add_get("/api/crm", api_crm)
+     app.router.add_get("/healthz", health_check)
+     app.router.add_get("/health", health_check) # Добавлено для монитора
+     app.router.add_get("/", health_check)
