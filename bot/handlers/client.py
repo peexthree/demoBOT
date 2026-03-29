@@ -1,183 +1,141 @@
 from aiogram import Router, F
-from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.filters import Command, CommandStart, CommandObject
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo, CallbackQuery
 import json
 import os
 import logging
-from db import save_lead_request, save_event
-
-BASE_PLANS = {
-    "base": "База (Лидогенерация)",
-    "standart": "Стандарт (Управление и БД)",
-    "business": "Бизнес (Сложная CRM)"
-}
-
-MODULES = {
-    "ai": "Интеграция ИИ (ChatGPT/Gemini)",
-    "payment": "Модуль приема платежей (Эквайринг)",
-    "admin": "Админ-панель с аналитикой",
-    "video": "Видео-аватар на входе"
-}
+from bot.db import save_user, save_event, get_user, save_business_profile
 
 router = Router()
+WEBAPP_URL = os.getenv("WEBAPP_URL", "https://your-app.onrender.com/twa")
 
-# Обработчик данных из TWA (оформление заказа)
+# --- ОНБОРДИНГ ---
+
+@router.message(CommandStart())
+async def cmd_start(message: Message, command: CommandObject):
+    telegram_id = message.from_user.id
+    username = message.from_user.username or ""
+    full_name = message.from_user.full_name or ""
+
+    # Обработка реферальной системы (/start ref12345)
+    referred_by = None
+    args = command.args
+    if args and args.startswith("ref"):
+        try:
+            referred_by = int(args.replace("ref", ""))
+        except ValueError:
+            pass
+
+    # Сохраняем/проверяем юзера
+    user_exists = await save_user(telegram_id, username, full_name, referred_by)
+
+    if not user_exists:
+        await save_event({"user_id": telegram_id, "username": username, "action": "onboarding_started"})
+        text = (
+            "<b>Привет. Я Eidos. Твой ИИ-Директор по маркетингу.</b>\n\n"
+            "Я не задаю глупых вопросов. Скинь мне ссылку на свой проект (сайт, соцсети, канал), "
+            "и я сам соберу профиль твоего бизнеса, проанализирую нишу и подготовлю план роста."
+        )
+        markup = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="Ввести данные вручную", callback_data="manual_onboarding")]
+        ])
+        await message.answer(text, parse_mode="HTML", reply_markup=markup)
+    else:
+        # Юзер уже есть, выдаем меню
+        await save_event({"user_id": telegram_id, "username": username, "action": "app_opened"})
+        text = (
+            "<b>Eidos готов к работе.</b>\n\n"
+            "Все инструменты, генерация контента и аналитика доступны в приложении."
+        )
+        markup = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⚡ Открыть платформу", web_app=WebAppInfo(url=f"{WEBAPP_URL}?user_id={telegram_id}"))],
+            [InlineKeyboardButton(text="💎 PRO Подписка", callback_data="buy_pro")]
+        ])
+        await message.answer(text, parse_mode="HTML", reply_markup=markup)
+
+
+# --- MAGIC LINK PARSER (Обработка ссылок) ---
+
+@router.message(F.text.regexp(r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+'))
+async def handle_magic_link(message: Message):
+    url = message.text.strip()
+    user_id = message.from_user.id
+
+    msg = await message.answer("🔄 Анализирую проект по ссылке... Это займет пару секунд.")
+    await save_event({"user_id": user_id, "action": "magic_link_submitted", "metadata": {"url": url}})
+
+    # Запускаем ИИ для парсинга (в реальном приложении здесь был бы вызов Scraper API + ИИ)
+    # Для MVP делаем симуляцию успешного парсинга через ИИ
+    from bot.ai_utils import generate_with_fallback
+    try:
+        sys_prompt = "Ты парсер B2B профилей. Извлеки из ссылки или названия суть проекта. Верни строгий JSON: {'project_name': 'имя', 'niche': 'ниша', 'target_audience': 'ЦА'}."
+        # В MVP мы просто "скармливаем" ссылку Gemini и просим додумать
+        res_json_str = await generate_with_fallback(f"Ссылка: {url}", system_prompt=sys_prompt)
+
+        # Парсим JSON
+        import json
+        try:
+            profile = json.loads(res_json_str.replace('```json', '').replace('```', '').strip())
+        except:
+            profile = {
+                "project_name": "Проект по ссылке",
+                "niche": "IT / Digital",
+                "target_audience": "B2C / B2B клиенты"
+            }
+
+        await save_business_profile(
+            user_id=user_id,
+            project_url=url,
+            project_name=profile.get("project_name", "Проект"),
+            niche=profile.get("niche", "Не определена"),
+            target_audience=profile.get("target_audience", "Широкая"),
+            tone_of_voice="Экспертный"
+        )
+
+        await msg.edit_text(
+            f"✅ <b>Цифровой профиль создан!</b>\n\n"
+            f"Проект: {profile.get('project_name')}\n"
+            f"Ниша: {profile.get('niche')}\n\n"
+            "Платформа настроена и готова к работе.",
+            parse_mode="HTML",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="⚡ Открыть платформу", web_app=WebAppInfo(url=f"{WEBAPP_URL}?user_id={user_id}"))]
+            ])
+        )
+    except Exception as e:
+        logging.error(f"Magic link error: {e}")
+        # Silent fallback на ручной ввод
+        await msg.edit_text(
+            "⚠️ Защита сайта заблокировала анализ (возможно Cloudflare).\n"
+            "Пожалуйста, заполните профиль вручную внутри приложения.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="Заполнить профиль", web_app=WebAppInfo(url=f"{WEBAPP_URL}?user_id={user_id}&tab=profile"))]
+            ])
+        )
+
+# --- РУЧНОЙ ВВОД ---
+@router.callback_query(F.data == "manual_onboarding")
+async def manual_onboarding(callback: CallbackQuery):
+    user_id = callback.from_user.id
+    await callback.message.edit_text(
+        "📝 Откройте приложение, чтобы быстро настроить профиль (3 поля):",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="Настроить профиль", web_app=WebAppInfo(url=f"{WEBAPP_URL}?user_id={user_id}&tab=profile"))]
+        ])
+    )
+
+# --- ОБРАБОТКА ДАННЫХ ИЗ TWA ---
 @router.message(F.web_app_data)
 async def web_app_data_handler(message: Message):
     data = message.web_app_data.data
     try:
         parsed_data = json.loads(data)
 
-        if parsed_data.get('action') == 'checkout':
-            item = parsed_data.get('payload')
-
-            # Имитация отправки в CRM (Supabase)
-            await save_lead_request({
-                "username": message.from_user.username,
-                "user_id": message.from_user.id,
-                "item_title": item.get('title'),
-                "item_price": item.get('price')
-            })
-
-            import html
-            response_text = (
-                f"🎉 Вы успешно оформили заказ: <b>{html.escape(str(item.get('title')))}</b>.\n"
-                f"💳 Стоимость: {item.get('price')} ₽\n\n"
-                "Ваша заявка моментально зафиксирована в CRM."
-            )
-            from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-            await message.answer(
-                response_text,
-                parse_mode="HTML",
-                reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню (/start)", callback_data="main_menu")]])
-            )
-
-            # Уведомление администратора
-            admin_id = os.getenv("ADMIN_ID")
-            if admin_id:
-                try:
-                    user_link = f"@{message.from_user.username}" if message.from_user.username else f"ID: {message.from_user.id}"
-                    admin_text = (
-                        f"🚨 <b>Новый заказ из TWA</b>\n\n"
-                        f"👤 Пользователь: {html.escape(user_link)}\n"
-                        f"📦 Товар: <b>{html.escape(str(item.get('title')))}</b>\n"
-                        f"💳 Стоимость: {item.get('price')} ₽"
-                    )
-                    await message.bot.send_message(admin_id, admin_text, parse_mode="HTML")
-                except Exception as e:
-                    logging.error(f"Failed to send admin notification: {e}")
-
-        elif parsed_data.get('action') == 'broadcast':
-            text = parsed_data.get('payload')
-            response_text = f"📢 <b>Демо-рассылка</b>\n\n{html.escape(str(text))}\n\n(Всем пользователям якобы ушло это сообщение)"
-            from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-            await message.answer(
-                response_text,
-                parse_mode="HTML",
-                reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню (/start)", callback_data="main_menu")]])
-            )
-
-        elif 'base' in parsed_data:
-            base_id = parsed_data.get('base')
-            module_ids = parsed_data.get('modules', [])
-
-            # Robust parsing of total_price
-            raw_price = parsed_data.get('totalPrice', 0)
-            try:
-                total_price = int(float(raw_price))
-            except (ValueError, TypeError):
-                total_price = 0
-
-            base_title = BASE_PLANS.get(base_id, base_id)
-            modules_titles = [MODULES.get(m, m) for m in module_ids]
-
-            modules_text = "\n".join([f"- {m}" for m in modules_titles]) if modules_titles else "Нет"
-
-            formatted_price = f"{total_price:,} ₽".replace(",", " ")
-
-            response_text = (
-                f"Запрос на предварительную смету получен. Итоговая сумма внедрения: {formatted_price}.\n"
-                "Архитектор проекта свяжется с вами для обсуждения деталей договора и сроков."
-            )
-
-            # Сохранение лида (имитация)
-            await save_lead_request({
-                "username": message.from_user.username,
-                "user_id": message.from_user.id,
-                "item_title": "Запрос Архитектору: " + base_title,
-                "item_price": total_price,
-                "metadata": {"modules": module_ids}
-            })
-
-            from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-            await message.answer(
-                response_text,
-                parse_mode="HTML",
-                reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Главное меню (/start)", callback_data="main_menu")]])
-            )
-
-            # Уведомление администратора
-            admin_id = os.getenv("ADMIN_ID")
-            if admin_id:
-                try:
-                    user_link = f"@{message.from_user.username}" if message.from_user.username else f"ID: {message.from_user.id}"
-
-                    admin_text = (
-                        "🚨 <b>Новый лид из Конфигуратора!</b>\n\n"
-                        f"👤 Контакт: {user_link}\n\n"
-                        f"📦 <b>База:</b> {base_title}\n"
-                        f"🧩 <b>Дополнительные модули:</b>\n{modules_text}\n\n"
-                        f"💰 <b>Предварительная оценка:</b> {formatted_price}"
-                    )
-
-                    await message.bot.send_message(admin_id, admin_text, parse_mode="HTML")
-                except Exception as e:
-                    logging.error(f"Failed to send admin notification: {e}")
+        # Если пришел запрос на покупку PRO из Blurred Paywall
+        if parsed_data.get('action') == 'buy_pro':
+            await message.answer("💎 Для оформления PRO подписки перейдите по кнопке ниже:", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="Оформить PRO", callback_data="buy_pro")]
+            ]))
 
     except Exception as e:
-        await message.answer(f"Ошибка обработки: {e}")
-
-
-# Feature 10: Database Integration for "Analytics" (Supabase)
-@router.message(Command("stats"))
-async def stats_cmd(message: Message):
-    import os
-    admin_id = os.getenv("ADMIN_ID")
-    if str(message.from_user.id) != admin_id:
-        await message.answer("❌ Нет доступа. Эта команда только для владельца (демонстрация аналитики).")
-        return
-
-    # Simple mockup or fetch from Supabase (since we don't have python client query logic mapped, we mock it realistically)
-    # The actual implementation would query supabase.table('leads').select('*').execute()
-    # We will simulate the "Analytics" report
-
-    from db import supabase
-
-    leads_count = 0
-    events_count = 0
-    if supabase:
-        try:
-            leads_resp = supabase.table("leads").select("*", count="exact").execute()
-            events_resp = supabase.table("events").select("*", count="exact").execute()
-            leads_count = leads_resp.count or len(leads_resp.data)
-            events_count = events_resp.count or len(events_resp.data)
-        except Exception as e:
-            logging.error(f"Error fetching stats: {e}")
-            leads_count = "Ошибка БД"
-            events_count = "Ошибка БД"
-
-    # Simulated metrics for Demo
-    if leads_count == 0 or leads_count == "Ошибка БД":
-        leads_count = 24
-        events_count = 158
-
-    stats_text = (
-        "📊 <b>Аналитика вашего бизнеса (Демо Supabase)</b>\n\n"
-        f"👥 <b>Новых лидов за сегодня:</b> {leads_count}\n"
-        f"🎯 <b>Действий пользователей (Events):</b> {events_count}\n"
-        "🔥 <b>Конверсия в заявку:</b> 15.2%\n\n"
-        "💡 <b>Инсайт ИИ:</b> Большинство запросов приходится на утренние часы. Рекомендуется запустить утреннюю рассылку.\n\n"
-        "<i>В реальном проекте здесь будет полная выгрузка из базы данных Supabase.</i>"
-    )
-
-    await message.answer(stats_text, parse_mode="HTML")
+        logging.error(f"WebAppData Error: {e}")

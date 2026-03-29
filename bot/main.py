@@ -2,178 +2,111 @@ import asyncio
 import logging
 import os
 import sys
-import traceback
 
-# Добавляем корневую папку bot в sys.path, чтобы python находил модули
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Добавляем корневую директорию проекта в sys.path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from aiogram.types import ErrorEvent
+from dotenv import load_dotenv
+load_dotenv()
+
 from aiogram import Bot, Dispatcher
-from aiogram.enums import ParseMode
-from aiogram.client.session.aiohttp import AiohttpSession
-from aiogram.client.session.middlewares.base import BaseRequestMiddleware
-from aiogram.exceptions import TelegramConflictError
 from aiogram.client.default import DefaultBotProperties
 from aiohttp import web
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
-from dotenv import load_dotenv
-from middlewares import SmartStalkerMiddleware
-from handlers import base, client, admin, demo
 
-load_dotenv()
+# Роутеры и API
+from bot.handlers import client, payments
+from bot.api import api_crm, api_get_profile, api_save_profile, api_generate_content, cors_middleware, options_handler
 
-logging.basicConfig(level=logging.INFO)
+# Настройка логирования
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+TOKEN = os.getenv("BOT_TOKEN")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # Например: https://eidos-bot.onrender.com
+PORT = int(os.getenv("PORT", 10000))
+WEBHOOK_PATH = f"/webhook/{TOKEN}"
+APP_URL = f"{WEBHOOK_URL}{WEBHOOK_PATH}"
+
+async def on_startup(bot: Bot):
+    if WEBHOOK_URL:
+        await bot.set_webhook(APP_URL, drop_pending_updates=True)
+        logger.info(f"Вэбхук установлен на: {APP_URL}")
+    else:
+        logger.info("Вэбхук отключен, запуск через Long Polling...")
 
 async def health_check(request):
-    return web.Response(text="OK")
+    return web.Response(text="OK", status=200)
 
-class PollingConflictMiddleware(BaseRequestMiddleware):
-    async def __call__(self, make_request, bot, method):
-        try:
-            return await make_request(bot, method)
-        except TelegramConflictError as e:
-            if getattr(method, "__class__", None).__name__ == "GetUpdates":
-                logging.info("Another bot instance is polling. Pausing this instance's polling to prevent conflict errors.")
-                await asyncio.sleep(86400) # Sleep indefinitely
-                return []
-            raise e
+async def main():
+    if not TOKEN:
+        logger.error("BOT_TOKEN не установлен!")
+        return
 
-
-# Global error handler
-
-async def global_error_handler(event: ErrorEvent):
-    logging.error(f"Critical error handled globally: {event.exception}")
-    logging.error(traceback.format_exc())
-
-    # Notify user if possible
-    if event.update.message:
-        try:
-            await event.update.message.answer("⚠️ <b>Произошла системная ошибка.</b>\n\nМои разработчики уже уведомлены и чинят меня. Пожалуйста, попробуйте позже.", parse_mode="HTML")
-        except Exception:
-            pass
-    elif event.update.callback_query:
-        try:
-             await event.update.callback_query.answer("⚠️ Системная ошибка. Мы уже работаем над этим.", show_alert=True)
-        except Exception:
-             pass
-
-    # Notify admin
-    admin_id = os.getenv("ADMIN_ID")
-    if admin_id and event.update.bot:
-        try:
-            error_text = f"🚨 <b>Критическая Ошибка БОТА!</b>\n\n"
-            error_text += f"<pre>Exception: {str(event.exception)[:1000]}</pre>"
-            await event.update.bot.send_message(admin_id, error_text, parse_mode="HTML")
-        except Exception:
-            pass
-
-def main():
-    bot_token = os.getenv("BOT_TOKEN")
-    is_mock = False
-    if not bot_token:
-        # Для локальных тестов
-        logging.warning("BOT_TOKEN не найден, используем моковый токен.")
-        bot_token = "123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi" # valid format
-        is_mock = True
-
-    session = AiohttpSession()
-    session.middleware(PollingConflictMiddleware())
-    bot = Bot(token=bot_token, session=session, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    # Инициализация бота и диспетчера
+    bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
     dp = Dispatcher()
 
-    # Регистрация Middlewares
-    dp.update.middleware(SmartStalkerMiddleware())
-
     # Регистрация роутеров
-    dp.include_router(admin.router)
-    dp.include_router(base.router)
     dp.include_router(client.router)
-    dp.include_router(demo.router)
+    dp.include_router(payments.router)
 
-    dp.errors.register(global_error_handler)
+    # Настройка aiohttp приложения
+    app = web.Application(middlewares=[cors_middleware])
+    app['bot'] = bot # Пробрасываем бота для фоновых задач
 
-    logging.info("Starting bot...")
+    # API endpoints для TWA
+    app.router.add_options('/api/crm', options_handler)
+    app.router.add_get('/api/crm', api_crm)
 
-    app = web.Application()
-    async def handle_options(request):
-        return web.Response(headers={"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "Content-Type"})
-    app.router.add_options("/api/crm", handle_options)
+    app.router.add_options('/api/profile', options_handler)
+    app.router.add_get('/api/profile', api_get_profile)
+    app.router.add_post('/api/profile', api_save_profile)
 
-    from bot.api import api_crm
-    app.router.add_get("/api/crm", api_crm)
+    app.router.add_options('/api/generate', options_handler)
+    app.router.add_post('/api/generate', api_generate_content)
 
-    app.router.add_get("/healthz", health_check)
-    app.router.add_get("/health", health_check) # Добавлено для монитора
-    app.router.add_get("/", health_check)
-    port = int(os.getenv("PORT", 10000))
+    # Health check endpoint для Render
+    app.router.add_get('/', health_check)
+    app.router.add_get('/healthz', health_check)
 
-    if is_mock:
-         logging.info("Mock mode, skipping polling but starting health check...")
-         logging.info(f"Health check server running on 0.0.0.0:{port} in mock mode")
-         web.run_app(app, host="0.0.0.0", port=port)
-         return
-
-    webhook_url = os.getenv("WEBHOOK_URL")
-
-    if webhook_url:
-        webhook_path = "/webhook"
-        full_webhook_url = f"{webhook_url.rstrip('/')}{webhook_path}"
-        logging.info(f"Setting webhook to {full_webhook_url}")
-
-        # Регистрируем хэндлер для вебхука
+    if WEBHOOK_URL:
+        # Настройка вэбхуков
+        dp.startup.register(on_startup)
         webhook_requests_handler = SimpleRequestHandler(
             dispatcher=dp,
             bot=bot,
         )
-        webhook_requests_handler.register(app, path=webhook_path)
-
-        # Настраиваем приложение (добавляет стартап/шаттдаун коллбэки)
+        webhook_requests_handler.register(app, path=WEBHOOK_PATH)
         setup_application(app, dp, bot=bot)
 
-        # Добавляем синхронный вызов bot.set_webhook() в startup
-        async def on_startup_webhook(app):
-            await bot.set_webhook(full_webhook_url)
-        app.on_startup.append(on_startup_webhook)
+        # Запуск aiohttp сервера
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, host='0.0.0.0', port=PORT)
+        logger.info(f"Запуск aiohttp сервера (Webhook) на порту {PORT}...")
+        await site.start()
 
-        logging.info(f"Webhook server running on 0.0.0.0:{port}")
-        web.run_app(app, host="0.0.0.0", port=port)
-
+        # Поддерживаем работу скрипта
+        await asyncio.Event().wait()
     else:
-        logging.info("WEBHOOK_URL not set, using long polling")
+        # Запуск в режиме Long Polling (для локальной разработки)
+        # Параллельно запускаем веб-сервер aiohttp для health_check и API
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, host='0.0.0.0', port=PORT)
+        logger.info(f"Запуск aiohttp сервера на порту {PORT}...")
+        await site.start()
 
-        async def delayed_polling(app):
-            # Задержка для предотвращения TelegramConflictError при zero-downtime деплоях
-            # Старая инстанция бота завершает работу не сразу.
-            logging.info("Delaying polling start for 15 seconds to avoid conflicts with stopping instances...")
-            await asyncio.sleep(15)
-
-            # Удаляем вебхук на всякий случай
-            try:
-                await bot.delete_webhook(drop_pending_updates=True)
-            except Exception as e:
-                logging.error(f"Could not delete webhook: {e}")
-
-            # Запускаем поллинг как фоновую задачу
-            logging.info("Starting polling task...")
-            app['polling_task'] = asyncio.create_task(dp.start_polling(bot, handle_signals=False))
-
-        async def on_startup_polling(app):
-            app['delayed_task'] = asyncio.create_task(delayed_polling(app))
-
-        app.on_startup.append(on_startup_polling)
-
-        async def on_shutdown_polling(app):
-            logging.info("Stopping polling task...")
-            if 'delayed_task' in app:
-                app['delayed_task'].cancel()
-            if 'polling_task' in app:
-                app['polling_task'].cancel()
+        logger.info("Запуск бота в режиме Polling...")
+        try:
+            await bot.delete_webhook(drop_pending_updates=True)
+            await dp.start_polling(bot, handle_signals=False)
+        finally:
             await bot.session.close()
 
-        app.on_shutdown.append(on_shutdown_polling)
-
-        logging.info(f"Health check server running on 0.0.0.0:{port}")
-        web.run_app(app, host="0.0.0.0", port=port)
-
 if __name__ == "__main__":
-    main()
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Остановка бота...")
